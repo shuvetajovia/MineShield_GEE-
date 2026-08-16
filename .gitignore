@@ -1,0 +1,81 @@
+# ──────────────────────────────────────────────
+# MineShield — GitHub .gitignore
+# Excludes large dataset & model files (GBs)
+# Only app code + small config files are tracked
+# ──────────────────────────────────────────────
+
+# ── Large datasets (GB-range, not tracked) ──
+MineShield_4D_Dataset_*.csv
+train_scaled.csv
+train_unscaled.csv
+test_scaled.csv
+test_unscaled.csv
+val_scaled.csv
+val_unscaled.csv
+live_location_lookup.csv
+india_mining_polygons.csv
+
+# ── Large parquet files ──
+all_features.parquet
+mine_location_index.parquet
+
+# ── Large model/index files ──
+mineshield_kdtree.pkl
+Data.ipynb
+
+# ── Small model files ARE tracked (needed at runtime) ──
+# mineshield_model_bundle.pkl       ~407 KB  ✓ tracked
+# mineshield_scaler.pkl             ~2.3 KB  ✓ tracked
+# mineshield_train_medians.pkl      ~2.7 KB  ✓ tracked
+# mineshield_feature_importance.csv ~1.0 KB  ✓ tracked
+# mineshield_unique_kdtree.pkl      ~854 KB  ✓ tracked
+# latest_mine_records.parquet       ~857 KB  ✓ tracked
+# unique_mine_index.parquet         ~700 KB  ✓ tracked
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+*.so
+.venv/
+venv/
+env/
+ENV/
+
+# ── Environment & secrets ──
+.env
+.env.*
+*.secret
+secrets.json
+
+# ── OS & editor ──
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── Logs ──
+*.log
+logs/
+
+# ── Node (if added later) ──
+node_modules/
+npm-debug.log*

@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MineShield — AI Rockfall Prediction & Alert System</title>
+  <meta name="description" content="MineShield: AI-Based Rockfall Prediction and Alert System for Open-Pit Mines. XGBoost engine, DEM terrain, satellite imagery, worker GPS tracking, weather intelligence." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet Heat -->
+  <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  APP SHELL                                 -->
+<!-- ══════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <polygon points="14,2 26,22 2,22" fill="none" stroke="#f97316" stroke-width="2.5"/>
+          <polygon points="14,8 22,20 6,20" fill="#f97316" opacity="0.25"/>
+          <line x1="14" y1="8" x2="14" y2="18" stroke="#ef4444" stroke-width="2"/>
+          <circle cx="14" cy="20" r="1.5" fill="#ef4444"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">MineShield</span>
+        <span class="brand-sub">AI Safety System v2.0</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard" id="nav-dashboard">
+        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Dashboard</span>
+        <div class="nav-indicator"></div>
+      </a>
+      <a href="#" class="nav-item" data-page="map" id="nav-map">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+        <span>Live Map</span>
+        <div class="live-dot"></div>
+      </a>
+      <a href="#" class="nav-item" data-page="risk" id="nav-risk">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+        <span>Risk Monitoring</span>
+      </a>
+      <a href="#" class="nav-item" data-page="drone" id="nav-drone">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 4v1m0 14v1M4 12H3m18 0h-1M6.34 6.34l-.707-.707m12.728 12.728l-.707-.707M6.34 17.66l-.707.707M19.07 4.93l-.707.707M9 12a3 3 0 106 0 3 3 0 00-6 0z"/></svg>
+        <span>Drone Intelligence</span>
+      </a>
+      <a href="#" class="nav-item" data-page="workers" id="nav-workers">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        <span>Workers</span>
+        <span class="badge-count" id="worker-danger-count">0</span>
+      </a>
+      <a href="#" class="nav-item" data-page="weather" id="nav-weather">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"/></svg>
+        <span>Weather</span>
+      </a>
+      <a href="#" class="nav-item" data-page="analytics" id="nav-analytics">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+        <span>Analytics</span>
+      </a>
+      <a href="#" class="nav-item" data-page="alerts" id="nav-alerts">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+        <span>Alerts</span>
+        <span class="badge-count critical" id="alert-count-badge">0</span>
+      </a>
+      <a href="#" class="nav-item" data-page="explain" id="nav-explain">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1 1 .27 2.701-1.066 2.783l-1.788.112c-.73.046-1.317.547-1.5 1.25l-.34 1.29c-.298 1.133-1.754 1.506-2.558.666L12 19.5l-2.048 2.308c-.804.84-2.26.467-2.559-.666l-.34-1.29a1.875 1.875 0 00-1.5-1.25l-1.788-.112c-1.336-.082-2.066-1.784-1.066-2.783L4.2 15.3"/></svg>
+        <span>Explainable AI</span>
+      </a>
+      <a href="#" class="nav-item" data-page="terrain" id="nav-terrain">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z"/></svg>
+        <span>Terrain Analysis</span>
+      </a>
+      <a href="#" class="nav-item" data-page="settings" id="nav-settings">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a7.62 7.62 0 010-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="system-status">
+        <div class="status-dot active"></div>
+        <span>All Systems Operational</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="main-wrap">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+
+      <div class="topbar-mine">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
+        <select id="mine-selector" class="mine-select">
+          <option value="MINE-OB-001">Odisha Bauxite Mine — Sector 7</option>
+          <option value="MINE-JH-001">Jharkhand Iron Mine — Pit A</option>
+          <option value="MINE-RJ-001">Rajasthan Marble Mine</option>
+          <option value="MINE-MP-001">MP Coal — Block 4</option>
+          <option value="MINE-KA-001">Karnataka Gold Mine</option>
+        </select>
+      </div>
+
+      <div class="topbar-weather" id="topbar-weather">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#60a5fa" stroke="none"><path d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"/></svg>
+        <span id="topbar-temp">--°C</span>
+        <span id="topbar-condition" class="weather-cond">Loading…</span>
+      </div>
+
+      <div class="topbar-alerts" id="topbar-alerts" data-page="alerts">
+        <div class="alert-bell">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+          <span class="alert-badge" id="topbar-alert-badge">0</span>
+        </div>
+        <span>Alerts</span>
+      </div>
+
+      <div class="topbar-user">
+        <div class="user-avatar">AS</div>
+        <div class="user-info">
+          <span class="user-name">Arjun Sharma</span>
+          <span class="user-role">Chief Safety Officer</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <main class="page-content" id="page-content">
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- PAGE: DASHBOARD                           -->
+      <!-- ══════════════════════════════════════════ -->
+      <section class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Operations Dashboard</h1>
+            <p class="page-sub">Real-time mine safety monitoring — <span id="dash-timestamp">--</span></p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-outline" onclick="App.refreshAll()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              Refresh
+            </button>
+            <button class="btn btn-primary" onclick="App.navigate('risk')">
+              Run Prediction
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="kpi-grid">
+          <div class="kpi-card" id="kpi-risk">
+            <div class="kpi-icon risk-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-label">Current Risk Level</span>
+              <span class="kpi-value" id="kpi-risk-value">--</span>
+              <span class="kpi-sub" id="kpi-risk-prob">Probability: --</span>
+            </div>
+            <div class="kpi-badge" id="kpi-risk-badge">LOADING</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon weather-icon">
+              <svg viewBox="0 0 24 24"><path d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"/></svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-label">Rainfall 7-Day</span>
+              <span class="kpi-value" id="kpi-rainfall">-- mm</span>
+              <span class="kpi-sub" id="kpi-rain-sub">Today: -- mm</span>
+            </div>
+            <div class="kpi-trend" id="kpi-rain-trend">↑</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon worker-icon">
+              <svg viewBox="0 0 24 24"><path d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-label">Active Workers</span>
+              <span class="kpi-value" id="kpi-workers">8</span>
+              <span class="kpi-sub" id="kpi-workers-danger">0 in danger zone</span>
+            </div>
+            <div class="kpi-pulse" id="kpi-worker-pulse"></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon alert-icon">
+              <svg viewBox="0 0 24 24"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-label">Active Alerts</span>
+              <span class="kpi-value" id="kpi-alerts">--</span>
+              <span class="kpi-sub" id="kpi-alerts-sub">-- critical</span>
+            </div>
+            <div class="kpi-badge critical" id="kpi-alert-badge">!</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon drone-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 4v1m0 14v1M4 12H3m18 0h-1M6.34 6.34l-.707-.707m12.728 12.728l-.707-.707M6.34 17.66l-.707.707M19.07 4.93l-.707.707M9 12a3 3 0 106 0 3 3 0 00-6 0z"/></svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-label">Drone Detections</span>
+              <span class="kpi-value" id="kpi-drone">5</span>
+              <span class="kpi-sub">1 critical anomaly</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon temp-icon">
+              <svg viewBox="0 0 24 24"><path d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.62a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.461z"/></svg>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-label">Temperature</span>
+              <span class="kpi-value" id="kpi-temp">--°C</span>
+              <span class="kpi-sub" id="kpi-humidity">Humidity: --%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Main Grid -->
+        <div class="dash-grid">
+          <!-- Risk Gauge -->
+          <div class="glass-card dash-gauge-card">
+            <div class="card-header">
+              <h3>AI Risk Gauge</h3>
+              <div class="live-indicator"><div class="live-dot"></div>LIVE</div>
+            </div>
+            <canvas id="riskGaugeChart" height="200"></canvas>
+            <div class="gauge-info">
+              <div class="gauge-label" id="gauge-label">Calculating…</div>
+              <div class="gauge-prob" id="gauge-prob">--</div>
+            </div>
+          </div>
+
+          <!-- Recent Alerts -->
+          <div class="glass-card dash-alerts-card">
+            <div class="card-header">
+              <h3>Recent Alerts</h3>
+              <a href="#" class="card-link" data-page="alerts">View All →</a>
+            </div>
+            <div class="alert-list" id="dash-alerts-list">
+              <div class="loading-spinner">Loading…</div>
+            </div>
+          </div>
+
+          <!-- Risk Trend Chart -->
+          <div class="glass-card dash-trend-card">
+            <div class="card-header">
+              <h3>30-Day Risk Trend</h3>
+              <div class="chart-legend">
+                <span class="legend-dot" style="background:#f97316"></span>Risk
+                <span class="legend-dot" style="background:#60a5fa;margin-left:12px"></span>Rainfall
+              </div>
+            </div>
+            <canvas id="dashTrendChart" height="160"></canvas>
+          </div>
+
+          <!-- Weather Widget -->
+          <div class="glass-card dash-weather-card">
+            <div class="card-header">
+              <h3>Weather Intelligence</h3>
+              <a href="#" class="card-link" data-page="weather">Details →</a>
+            </div>
+            <div id="dash-weather-widget">
+              <div class="loading-spinner">Loading…</div>
+            </div>
+          </div>
+
+          <!-- Mine Info -->
+          <div class="glass-card dash-mine-card">
+            <div class="card-header"><h3>Mine Information</h3></div>
+            <div class="mine-info-grid">
+              <div class="mine-info-item">
+                <span class="info-label">Mine ID</span>
+                <span class="info-value" id="dash-mine-id">MINE-OB-001</span>
+              </div>
+              <div class="mine-info-item">
+                <span class="info-label">Location</span>
+                <span class="info-value">Odisha, India</span>
+              </div>
+              <div class="mine-info-item">
+                <span class="info-label">Pit Depth</span>
+                <span class="info-value">480 m</span>
+              </div>
+              <div class="mine-info-item">
+                <span class="info-label">Bench Levels</span>
+                <span class="info-value">14</span>
+              </div>
+              <div class="mine-info-item">
+                <span class="info-label">Area</span>
+                <span class="info-value">12.4 km²</span>
+              </div>
+              <div class="mine-info-item">
+                <span class="info-label">Active Workers</span>
+                <span class="info-value">8 on-site</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Recommendations -->
+          <div class="glass-card dash-reco-card">
+            <div class="card-header"><h3>AI Recommendations</h3></div>
+            <div id="dash-recommendations">
+              <div class="loading-spinner">Loading…</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- PAGE: LIVE MAP                            -->
+      <!-- ══════════════════════════════════════════ -->
+      <section class="page" id="page-map">
+        <div class="map-topbar">
+          <div class="map-controls">
+            <button class="map-btn active" id="map-satellite-btn" onclick="MapModule.setLayer('satellite')">Satellite</button>
+            <button class="map-btn" id="map-terrain-btn" onclick="MapModule.setLayer('terrain')">Terrain</button>
+            <button class="map-btn" id="map-dark-btn" onclick="MapModule.setLayer('dark')">Dark</button>
+          </div>
+          <div class="map-overlays">
+            <label class="toggle-label"><input type="checkbox" id="toggle-heatmap" checked onchange="MapModule.toggleHeatmap(this.checked)"> Risk Heatmap</label>
+            <label class="toggle-label"><input type="checkbox" id="toggle-workers" checked onchange="MapModule.toggleWorkers(this.checked)"> Workers</label>
+            <label class="toggle-label"><input type="checkbox" id="toggle-drones" checked onchange="MapModule.toggleDrones(this.checked)"> Drones</label>
+            <label class="toggle-label"><input type="checkbox" id="toggle-zones" checked onchange="MapModule.toggleZones(this.checked)"> Hazard Zones</label>
+          </div>
+          <div class="map-status">
+            <div class="live-dot"></div>
+            <span>Live Tracking</span>
+          </div>
+        </div>
+        <div id="live-map"></div>
+        <div class="map-info-panel">
+          <div class="gps-panel">
+            <div class="gps-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e"><circle cx="12" cy="12" r="3"/><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z"/></svg>
+              GPS TRACKING
+            </div>
+            <div class="gps-grid">
+              <div><span class="gps-label">Latitude</span><span class="gps-val" id="gps-lat">--</span></div>
+              <div><span class="gps-label">Longitude</span><span class="gps-val" id="gps-lon">--</span></div>
+              <div><span class="gps-label">Speed</span><span class="gps-val" id="gps-speed">-- km/h</span></div>
+              <div><span class="gps-label">Heading</span><span class="gps-val" id="gps-heading">--°</span></div>
+            </div>
+            <div class="gps-time" id="gps-time">--</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- PAGE: RISK MONITORING                     -->
+      <!-- ══════════════════════════════════════════ -->
+      <section class="page" id="page-risk">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">AI Rockfall Risk Engine</h1>
+            <p class="page-sub">XGBoost prediction model — real-time slope vulnerability assessment</p>
+          </div>
+          <button class="btn btn-primary" id="run-prediction-btn" onclick="RiskModule.runLivePrediction()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Run Live Prediction
+          </button>
+        </div>
+
+        <div class="risk-grid">
+          <!-- Big Gauge -->
+          <div class="glass-card risk-gauge-card">
+            <div class="card-header">
+              <h3>Vulnerability Probability</h3>
+              <div class="live-indicator"><div class="live-dot"></div>LIVE</div>
+            </div>
+            <div class="big-gauge-wrap">
+              <canvas id="bigRiskGauge" width="280" height="180"></canvas>
+              <div class="big-gauge-center">
+                <div class="big-prob" id="big-prob">0.0000</div>
+                <div class="big-risk-label" id="big-risk-label">--</div>
+              </div>
+            </div>
+            <div class="risk-meta" id="risk-meta">
+              <div class="risk-meta-item"><span>Mine ID</span><strong id="meta-mine-id">--</strong></div>
+              <div class="risk-meta-item"><span>Date</span><strong id="meta-date">--</strong></div>
+              <div class="risk-meta-item"><span>Distance</span><strong id="meta-dist">-- km</strong></div>
+            </div>
+          </div>
+
+          <!-- Risk Level Cards -->
+          <div class="risk-levels-col">
+            <div class="risk-level-card green" id="rl-low">
+              <div class="rl-dot"></div>
+              <div class="rl-body">
+                <div class="rl-title">LOW RISK</div>
+                <div class="rl-range">0.000 — 0.250</div>
+                <div class="rl-desc">Normal monitoring. Standard protocols apply.</div>
+              </div>
+            </div>
+            <div class="risk-level-card yellow" id="rl-moderate">
+              <div class="rl-dot"></div>
+              <div class="rl-body">
+                <div class="rl-title">MODERATE RISK</div>
+                <div class="rl-range">0.250 — 0.500</div>
+                <div class="rl-desc">Increase inspection frequency. Alert safety officer.</div>
+              </div>
+            </div>
+            <div class="risk-level-card orange" id="rl-high">
+              <div class="rl-dot"></div>
+              <div class="rl-body">
+                <div class="rl-title">HIGH RISK</div>
+                <div class="rl-range">0.500 — 0.750</div>
+                <div class="rl-desc">Restrict equipment. Deploy additional sensors.</div>
+              </div>
+            </div>
+            <div class="risk-level-card red" id="rl-critical">
+              <div class="rl-dot"></div>
+              <div class="rl-body">
+                <div class="rl-title">CRITICAL RISK</div>
+                <div class="rl-range">0.750 — 1.000</div>
+                <div class="rl-desc">EVACUATE. Suspend blasting. Emergency team.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recommendations -->
+          <div class="glass-card risk-reco-card">
+            <div class="card-header"><h3>AI Recommendations</h3></div>
+            <div id="risk-recommendations">
+              <div class="loading-spinner">Run a prediction to get recommendations…</div>
+            </div>
+          </div>
+
+          <!-- Prediction History -->
+          <div class="glass-card risk-history-card">
+            <div class="card-header"><h3>Prediction Timeline</h3></div>
+            <canvas id="predictionTimelineChart" height="200"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- PAGE: DRONE INTELLIGENCE                  -->
+      <!-- ══════════════════════════════════════════ -->
+      <section class="page" id="page-drone">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Drone Intelligence Module</h1>
+            <p class="page-sub">AI-powered aerial inspection with real-time anomaly detection</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-outline" onclick="DroneModule.simulateFlight()">Simulate Flight</button>
+            <button class="btn btn-primary" onclick="document.getElementById('drone-upload').click()">Upload Imagery</button>
+            <input type="file" id="drone-upload" accept="image/*,video/*" style="display:none" onchange="DroneModule.handleUpload(event)">
+          </div>
+        </div>
+
+        <div class="drone-grid">
+          <!-- Drone Feed / Canvas -->
+          <div class="glass-card drone-feed-card">
+            <div class="card-header">
+              <h3>Live Drone Feed</h3>
+              <div class="drone-status" id="drone-status">
+                <div class="live-dot orange"></div>
+                <span id="drone-status-text">QUAD-ATLAS-02 — Active</span>
+              </div>
+            </div>
+            <div class="drone-canvas-wrap">
+              <canvas id="droneCanvas" width="600" height="400"></canvas>
+              <div class="drone-overlay-info">
+                <div class="doi-item"><span>ALT</span><strong id="drone-alt">45m</strong></div>
+                <div class="doi-item"><span>BATT</span><strong id="drone-batt">67%</strong></div>
+                <div class="doi-item"><span>AREA</span><strong id="drone-area">12,000 m²</strong></div>
+                <div class="doi-item"><span>TIME</span><strong id="drone-time">22 min</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detection Results -->
+          <div class="glass-card drone-detections-card">
+            <div class="card-header">
+              <h3>Detection Results</h3>
+              <span class="detection-count" id="detection-count">-- anomalies</span>
+            </div>
+            <div class="detection-list" id="detection-list">
+              <div class="loading-spinner">Loading detections…</div>
+            </div>
+          </div>
+
+          <!-- Drone Telemetry -->
+          <div class="glass-card drone-telemetry-card">
+            <div class="card-header"><h3>Drone Telemetry</h3></div>
+            <div class="telemetry-grid" id="drone-telemetry">
+              <div class="tele-item"><span>Flight ID</span><strong id="tele-flight">--</strong></div>
+              <div class="tele-item"><span>Drone ID</span><strong id="tele-id">--</strong></div>
+              <div class="tele-item"><span>GPS Lat</span><strong id="tele-lat">--</strong></div>
+              <div class="tele-item"><span>GPS Lon</span><strong id="tele-lon">--</strong></div>
+              <div class="tele-item"><span>Coverage</span><strong id="tele-cov">--</strong></div>
+              <div class="tele-item"><span>Critical</span><strong id="tele-crit" class="text-red">--</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- PAGE: WORKERS                             -->
+      <!-- ══════════════════════════════════════════ -->
+      <section class="page" id="page-workers">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Worker Safety Tracking</h1>
+            <p class="page-sub">Real-time GPS monitoring with hazard proximity alerts</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-outline" id="refresh-workers-btn" onclick="WorkerModule.refresh()">Refresh GPS</button>
+          </div>
+        </div>
+
+        <div class="workers-grid">
+          <!-- Workers Table -->
+          <div class="glass-card workers-table-card">
+            <div class="card-header">
+              <h3>Active Personnel</h3>
+              <div class="live-indicator"><div class="live-dot"></div>LIVE GPS</div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table" id="workers-table">
+                <thead>
+                  <tr>
+                    <th>Worker</th>
+                    <th>ID</th>
+                    <th>Role</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Distance to Hazard</th>
+                    <th>Status</th>
+                    <th>Speed</th>
+                  </tr>
+                </thead>
+                <tbody id="workers-tbody">
+                  <tr><td colspan="8" class="loading-cell">Loading workers…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Worker Alerts -->
+          <div class="glass-card worker-alerts-card">
+            <div class="card-header"><h3>Proximity Alerts</h3></div>
+            <div id="worker-proximity-alerts">
+              <div class="loading-spinner">Monitoring…</div>
+            </div>
+          </div>
+
+          <!-- Worker Stats -->
+          <div class="glass-card worker-stats-card">
+            <div class="card-header"><h3>Exposure Statistics</h3></div>
+            <canvas id="workerExposureChart" height="220"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- PAGE: WEATHER                             -->
+      <!-- ══════════════════════════════════════════ -->
+      <section class="page" id="page-weather">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Weather Intelligence</h1>
+            <p class="page-sub">Live meteorological data with slope stability risk assessment</p>
+          </div>
+          <div class="live-indicator"><div class="live-dot"></div>LIVE</div>
+        </div>
+
+        <div class="weather-grid">
+          <!-- Current Conditions -->
+          <div class="glass-card weather-main-card">
+            <div class="weather-main-display">
+              <div class="weather-big-temp" id="w-temp">--°C</div>
+              <div class="weather-condition-display" id="w-condition">Loading…</div>
+              <div class="weather-sub-stats">
+                <div class="ws-item"><span>Min</span><strong id="w-min">--°C</strong></div>
+                <div class="ws-item"><span>Max</span><strong id="w-max">--°C</strong></div>
+                <div class="ws-item"><span>Humidity</span><strong id="w-humidity">--%</strong></div>
+                <div class="ws-item"><span>Pressure</span><strong id="w-pressure">-- hPa</strong></div>
+                <div class="ws-item"><span>Wind</span><strong id="w-wind">-- km/h</strong></div>
+                <div class="ws-item"><span>Visibility</span><strong id="w-vis">-- km</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rainfall Cards -->
+          <div class="glass-card rainfall-card" id="rc-today">
+            <div class="rf-label">Today</div>
+            <div class="rf-value" id="rf-today">-- mm</div>
+            <div class="rf-bar"><div class="rf-fill" id="rfb-today" style="width:0%"></div></div>
+          </div>
+          <div class="glass-card rainfall-card" id="rc-3d">
+            <div class="rf-label">3-Day</div>
+            <div class="rf-value" id="rf-3d">-- mm</div>
+            <div class="rf-bar"><div class="rf-fill" id="rfb-3d" style="width:0%"></div></div>
+          </div>
+          <div class="glass-card rainfall-card" id="rc-7d">
+            <div class="rf-label">7-Day</div>
+            <div class="rf-value" id="rf-7d">-- mm</div>
+            <div class="rf-bar"><div class="rf-fill warning" id="rfb-7d" style="width:0%"></div></div>
+          </div>
+          <div class="glass-card rainfall-card" id="rc-30d">
+            <div class="rf-label">30-Day</div>
+            <div class="rf-value" id="rf-30d">-- mm</div>
+            <div class="rf-bar"><div class="rf-fill danger" id="rfb-30d" style="width:0%"></div></div>
+          </div>
+
+          <!-- Hourly Rain Chart -->
+          <div class="glass-card weather-chart-card">
+            <div class="card-header"><h3>Hourly Rainfall Today</h3></div>
+            <canvas id="hourlyRainChart" height="180"></canvas>
+          </div>
+
+          <!-- Forecast -->
+          <div class="glass-card weather-forecast-card">
+            <div class="card-header"><h3>7-Day Forecast</h3></div>
+            <div class="forecast-strip" id="forecast-strip">
+              <div class="loading-spinner">Loading forecast…</div>
+            </div>
+          </div>
+
+          <!-- Risk Flag -->
+          <div class="glass-card weather-risk-card" id="weather-risk-flag" style="display:none">
+            <div class="risk-flag-content">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="#ef4444"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+              <div>
+                <h3>⚠️ Rainfall Risk Threshold Exceeded</h3>
+                <p>7-day cumulative rainfall has exceeded 150mm. Elevated slope instability risk. Increase monitoring frequency immediately.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- PAGE: ANALYTICS                           -->
+      <!-- ══════════════════════════════════════════ -->
+      <section class="page" id="page-analytics">
+        <div class="page-header">
+          <h1 class="page-title">Analytics Center</h1>
+          <p class="page-sub">Historical risk trends, rainfall analysis, and alert statistics</p>
+        </div>
+        <div class="analytics-grid">
+          <div class="glass-card analytics-risk-card">
+            <div class="card-header"><h3>30-Day Risk Probability Trend</h3></div>
+            <canvas id="analyticsRiskChart" height="200"></canvas>
+          </div>
+          <div class="glass-card analytics-rain-card">
+            <div class="card-header"><h3>30-Day Rainfall History</h3></div>
+            <canvas id="analyticsRainChart" height="200"></canvas>
+          </div>
+          <div class="glass-card analytics-alert-card">
+            <div class="card-header"><h3>Alert Distribution</h3></div>
+            <canvas id="analyticsAlertChart" height="220"></canvas>
+          </div>
+          <div class="glass-card analytics-exposure-card">
+            <div class="card-header"><h3>Worker Hazard Exposure</h3></div>
+            <canvas id="analyticsExposureChart" height="220"></canvas>
+          </div>
+          <div class="glass-card analytics-stats-card">
+            <div class="card-header"><h3>Summary Statistics</h3></div>
+            <div class="stats-grid" id="analytics-stats">
+              <div class="stat-item"><span class="stat-label">Total Predictions</span><span class="stat-val" id="stat-predictions">--</span></div>
+              <div class="stat-item"><span class="stat-label">Total Alerts</span><span class="stat-val" id="stat-alerts">--</span></div>
+              <div class="stat-item"><span class="stat-label">Critical Events</span><span class="stat-val text-red" id="stat-critical">--</span></div>
+              <div class="stat-item"><span class="stat-label">Avg Risk Score</span><span class="stat-val" id="stat-avgrisk">--</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- PAGE: ALERTS                              -->
+      <!-- ══════════════════════════════════════════ -->
+      <section class="page" id="page-alerts">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Alert Management Center</h1>
+            <p class="page-sub">Incident tracking, severity classification, and response coordination</p>
+          </div>
+          <div class="alert-filter-bar">
+            <button class="filter-btn active" data-filter="ALL" onclick="AlertsModule.filter('ALL',this)">All</button>
+            <button class="filter-btn critical-btn" data-filter="CRITICAL" onclick="AlertsModule.filter('CRITICAL',this)">Critical</button>
+            <button class="filter-btn high-btn" data-filter="HIGH" onclick="AlertsModule.filter('HIGH',this)">High</button>
+            <button class="filter-btn warning-btn" data-filter="WARNING" onclick="AlertsModule.filter('WARNING',this)">Warning</button>
+            <button class="filter-btn info-btn" data-filter="INFO" onclick="AlertsModule.filter('INFO',this)">Info</button>
+          </div>
+        </div>
+        <div class="alerts-container" id="alerts-container">
+          <div class="loading-spinner">Loading alerts…</div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- PAGE: EXPLAINABLE AI                      -->
+      <!-- ══════════════════════════════════════════ -->
+      <section class="page" id="page-explain">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Explainable AI — SHAP Analysis</h1>
+            <p class="page-sub">Feature attribution and model transparency for XGBoost predictions</p>
+          </div>
+        </div>
+        <div class="explain-grid">
+          <div class="glass-card explain-bar-card">
+            <div class="card-header"><h3>Feature Importance (Mean |SHAP|)</h3></div>
+            <canvas id="shapBarChart" height="320"></canvas>
+          </div>
+          <div class="glass-card explain-waterfall-card">
+            <div class="card-header"><h3>SHAP Waterfall — Current Prediction</h3></div>
+            <canvas id="shapWaterfallChart" height="320"></canvas>
+          </div>
+          <div class="glass-card explain-table-card">
+            <div class="card-header"><h3>Feature Ranking Table</h3></div>
+            <div class="table-wrap">
+              <table class="data-table" id="shap-table">
+                <thead>
+                  <tr><th>#</th><th>Feature</th><th>SHAP Value</th><th>Direction</th><th>Impact Bar</th></tr>
+                </thead>
+                <tbody id="shap-tbody">
+                  <tr><td colspan="5" class="loading-cell">Loading SHAP values…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- PAGE: TERRAIN ANALYSIS                    -->
+      <!-- ══════════════════════════════════════════ -->
+      <section class="page" id="page-terrain">
+        <div class="page-header">
+          <h1 class="page-title">Terrain Analysis Panel</h1>
+          <p class="page-sub">DEM-derived topographic and spectral indices</p>
+        </div>
+        <div class="terrain-grid">
+          <div class="glass-card terrain-metrics-card">
+            <div class="card-header"><h3>Topographic Metrics</h3></div>
+            <div class="terrain-metrics" id="terrain-metrics">
+              <div class="loading-spinner">Loading terrain data…</div>
+            </div>
+          </div>
+          <div class="glass-card terrain-spectral-card">
+            <div class="card-header"><h3>Spectral Indices</h3></div>
+            <canvas id="terrainRadarChart" height="280"></canvas>
+          </div>
+          <div class="glass-card terrain-sar-card">
+            <div class="card-header"><h3>SAR Backscatter</h3></div>
+            <canvas id="sarChart" height="220"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════ -->
+      <!-- PAGE: SETTINGS                            -->
+      <!-- ══════════════════════════════════════════ -->
+      <section class="page" id="page-settings">
+        <div class="page-header">
+          <h1 class="page-title">System Settings</h1>
+          <p class="page-sub">Mine configuration, risk thresholds, and notification preferences</p>
+        </div>
+        <div class="settings-grid">
+          <div class="glass-card settings-card">
+            <div class="card-header"><h3>Risk Thresholds</h3></div>
+            <div class="settings-form">
+              <div class="form-group">
+                <label>Moderate Risk Threshold</label>
+                <input type="range" min="0.1" max="0.5" step="0.05" value="0.25" id="thresh-moderate" oninput="document.getElementById('tv-moderate').textContent=this.value">
+                <span id="tv-moderate">0.25</span>
+              </div>
+              <div class="form-group">
+                <label>High Risk Threshold</label>
+                <input type="range" min="0.3" max="0.7" step="0.05" value="0.5" id="thresh-high" oninput="document.getElementById('tv-high').textContent=this.value">
+                <span id="tv-high">0.50</span>
+              </div>
+              <div class="form-group">
+                <label>Critical Risk Threshold</label>
+                <input type="range" min="0.5" max="0.95" step="0.05" value="0.75" id="thresh-critical" oninput="document.getElementById('tv-critical').textContent=this.value">
+                <span id="tv-critical">0.75</span>
+              </div>
+              <div class="form-group">
+                <label>Rainfall Alert (7d mm)</label>
+                <input type="number" value="150" id="thresh-rainfall" class="form-input">
+              </div>
+              <div class="form-group">
+                <label>Worker Danger Distance (m)</label>
+                <input type="number" value="50" id="thresh-worker" class="form-input">
+              </div>
+              <button class="btn btn-primary" onclick="App.showToast('Settings saved successfully','success')">Save Settings</button>
+            </div>
+          </div>
+          <div class="glass-card settings-card">
+            <div class="card-header"><h3>API Configuration</h3></div>
+            <div class="settings-form">
+              <div class="form-group">
+                <label>Backend API URL</label>
+                <input type="text" value="http://localhost:8000" id="api-url" class="form-input">
+              </div>
+              <div class="form-group">
+                <label>Refresh Interval (seconds)</label>
+                <input type="number" value="30" id="refresh-interval" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="toggle-row">
+                  <span>Enable Live Predictions</span>
+                  <input type="checkbox" checked class="toggle-check" id="live-pred-toggle">
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="toggle-row">
+                  <span>Sound Alerts</span>
+                  <input type="checkbox" checked class="toggle-check" id="sound-toggle">
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="toggle-row">
+                  <span>Auto-Evacuate Notifications</span>
+                  <input type="checkbox" checked class="toggle-check" id="evac-toggle">
+                </label>
+              </div>
+              <button class="btn btn-outline" onclick="API.testConnection()">Test Connection</button>
+            </div>
+          </div>
+          <div class="glass-card settings-card">
+            <div class="card-header"><h3>About MineShield</h3></div>
+            <div class="about-content">
+              <div class="about-logo">
+                <svg width="48" height="48" viewBox="0 0 28 28" fill="none">
+                  <polygon points="14,2 26,22 2,22" fill="none" stroke="#f97316" stroke-width="2.5"/>
+                  <polygon points="14,8 22,20 6,20" fill="#f97316" opacity="0.25"/>
+                  <line x1="14" y1="8" x2="14" y2="18" stroke="#ef4444" stroke-width="2"/>
+                  <circle cx="14" cy="20" r="1.5" fill="#ef4444"/>
+                </svg>
+                <h2>MineShield v2.0</h2>
+              </div>
+              <p>AI-Based Rockfall Prediction and Alert System for Open-Pit Mines</p>
+              <div class="tech-stack">
+                <span class="tech-tag">XGBoost</span>
+                <span class="tech-tag">FastAPI</span>
+                <span class="tech-tag">SHAP</span>
+                <span class="tech-tag">Leaflet.js</span>
+                <span class="tech-tag">Chart.js</span>
+                <span class="tech-tag">Google Earth Engine</span>
+              </div>
+              <p class="about-desc">Built for Smart India Hackathon — Protecting miners with AI-powered prediction and real-time monitoring.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main><!-- /page-content -->
+  </div><!-- /main-wrap -->
+</div><!-- /app -->
+
+<!-- Toast Notification -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Critical Alert Modal -->
+<div class="alert-modal" id="alert-modal" style="display:none">
+  <div class="alert-modal-content">
+    <div class="alert-modal-icon">⚠️</div>
+    <h2 id="alert-modal-title">CRITICAL ALERT</h2>
+    <p id="alert-modal-msg">--</p>
+    <div class="alert-modal-actions">
+      <button class="btn btn-danger" onclick="AlertsModule.acknowledge()">Acknowledge</button>
+      <button class="btn btn-outline" onclick="document.getElementById('alert-modal').style.display='none'">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<!-- JS Modules -->
+<script src="js/api.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/map.js"></script>
+<script src="js/alerts.js"></script>
+<script src="js/workers.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
