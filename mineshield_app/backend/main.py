@@ -268,9 +268,21 @@ SENSOR_TYPES = [
 _sensor_stop = Event()
 _ws_clients = set()
 
+import psycopg2
+
+def get_db_connection():
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        return None
+    try:
+        return psycopg2.connect(db_url, connect_timeout=5)
+    except Exception as e:
+        print(f"[WARN] Supabase connection failed: {e}. Running in simulated memory mode.")
+        return None
+
 def _init_sensors():
-    # Create a few sensor points around the default mine
-    base_lat, base_lon = 20.5937, 78.9629
+    # Create simulated default sensors in local SENSOR_STORE first
+    base_lat, base_lon = 20.5937, 83.9629
     for i, s in enumerate(SENSOR_TYPES):
         sid = f"S{i+1:03d}"
         val = round(random.uniform(s['min'], s['critical'] * 0.7), 3)
@@ -290,6 +302,33 @@ def _init_sensors():
             "reasoning": "Initial baseline reading verified."
         }
         SENSOR_HISTORY[sid] = [(datetime.utcnow(), val)]
+
+    # Sync to/from Supabase DB
+    conn = get_db_connection()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                # Check if sensors exist
+                cur.execute("SELECT id FROM sensors LIMIT 1;")
+                rows = cur.fetchall()
+        except Exception:
+            # Seed default sensors if tables are empty/just initialized
+            conn.rollback()
+            try:
+                with conn.cursor() as cur:
+                    for sid, s in SENSOR_STORE.items():
+                        cur.execute(
+                            """INSERT INTO sensors (id, type, unit, latitude, longitude, value, threshold, status, trend) 
+                               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                               ON CONFLICT (id) DO UPDATE SET value = EXCLUDED.value, status = EXCLUDED.status;""",
+                            (sid, s["type"], s["unit"], s["latitude"], s["longitude"], s["value"], s["threshold"], s["status"], s["trend"])
+                        )
+                    conn.commit()
+            except Exception as e:
+                print(f"[ERROR] Failed to seed Supabase database sensors: {e}")
+                conn.rollback()
+        finally:
+            conn.close()
 
 def validate_sensor_reading(sid: str, val: float, specs: dict) -> dict:
     s_type = specs["type"]
@@ -379,6 +418,26 @@ def _sensor_loop():
             s['reasoning'] = validation['reasoning']
             s['status'] = validation['status']
             s['display_message'] = validation['message']
+
+            # Supabase Sync
+            conn = get_db_connection()
+            if conn:
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            """UPDATE sensors SET value = %s, status = %s, trend = %s, last_update = %s WHERE id = %s;""",
+                            (s['value'], s['status'], s['trend'], datetime.utcnow(), sid)
+                        )
+                        cur.execute(
+                            """INSERT INTO sensor_readings (sensor_id, value, status, timestamp) VALUES (%s, %s, %s, %s);""",
+                            (sid, s['value'], s['status'], datetime.utcnow())
+                        )
+                        conn.commit()
+                except Exception as e:
+                    print(f"[WARN] Failed to write sensor update to DB: {e}")
+                    conn.rollback()
+                finally:
+                    conn.close()
             
         time.sleep(4)
 
@@ -1117,6 +1176,38 @@ def get_alerts():
     except Exception:
         pass
 
+    conn = get_db_connection()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                for a in alerts:
+                    cur.execute(
+                        """INSERT INTO alerts (id, level, type, message, location_desc, time, action, is_anomaly, confidence_score, reasoning, acknowledged, dismissed)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO NOTHING;""",
+                        (a["id"], a["level"], a["type"], a["message"], a["location"], datetime.fromisoformat(a["time"].replace('Z','')), a.get("action",""), a.get("is_anomaly", False), a.get("confidence_score", 1.0), a.get("reasoning",""), a["acknowledged"], False)
+                    )
+                conn.commit()
+
+                cur.execute("SELECT id, level, type, message, location_desc, time, action, is_anomaly, confidence_score, reasoning, acknowledged, dismissed FROM alerts WHERE dismissed = FALSE ORDER BY time DESC LIMIT 50;")
+                columns = [col[0] for col in cur.description]
+                db_alerts = []
+                for row in cur.fetchall():
+                    r = dict(zip(columns, row))
+                    if isinstance(r["time"], datetime):
+                        r["time"] = r["time"].isoformat() + "Z"
+                    r["location"] = r.pop("location_desc")
+                    db_alerts.append(r)
+                    if r["acknowledged"]:
+                        ACKED_ALERTS.add(r["id"])
+                    if r["dismissed"]:
+                        DISMISSED_ALERTS.add(r["id"])
+                alerts = db_alerts
+        except Exception as e:
+            print(f"[WARN] Supabase alerts sync failed: {e}")
+        finally:
+            conn.close()
+
     return {"alerts": alerts, "count": len(alerts), "critical_count": sum(1 for a in alerts if a["level"] == "CRITICAL"), "timestamp": now.isoformat()}
 
 
@@ -1297,6 +1388,22 @@ async def drone_upload(file: UploadFile = File(...)):
 @app.get('/sensors')
 def sensors():
     """Return current simulated sensor readings."""
+    conn = get_db_connection()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id, type, unit, latitude, longitude, value, threshold, status, trend, last_update FROM sensors;")
+                columns = [col[0] for col in cur.description]
+                rows = [dict(zip(columns, row)) for row in cur.fetchall()]
+                for r in rows:
+                    sid = r["id"]
+                    if isinstance(r["last_update"], datetime):
+                        r["last_update"] = r["last_update"].isoformat()
+                    SENSOR_STORE[sid] = r
+        except Exception as e:
+            print(f"[WARN] Failed to read sensors from DB: {e}")
+        finally:
+            conn.close()
     return {"sensors": list(SENSOR_STORE.values()), "timestamp": datetime.utcnow().isoformat()}
 
 from fastapi import WebSocket, WebSocketDisconnect
@@ -1397,6 +1504,18 @@ def alerts_ack(payload: Dict[str, str]):
     if not aid:
         raise HTTPException(status_code=400, detail='id required')
     ACKED_ALERTS.add(aid)
+    
+    conn = get_db_connection()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE alerts SET acknowledged = TRUE WHERE id = %s;", (aid,))
+                conn.commit()
+        except Exception as e:
+            print(f"[WARN] DB alert ack failed: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
     return {'status': 'acknowledged', 'id': aid}
 
 
@@ -1406,6 +1525,18 @@ def alerts_dismiss(payload: Dict[str, str]):
     if not aid:
         raise HTTPException(status_code=400, detail='id required')
     DISMISSED_ALERTS.add(aid)
+    
+    conn = get_db_connection()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE alerts SET dismissed = TRUE WHERE id = %s;", (aid,))
+                conn.commit()
+        except Exception as e:
+            print(f"[WARN] DB alert dismiss failed: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
     return {'status': 'dismissed', 'id': aid}
 
 
