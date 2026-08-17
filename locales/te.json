@@ -1,0 +1,27 @@
+{
+  "refresh": "రీఫ్రెష్",
+  "run_prediction": "పవనాన్ని నడిపి",
+  "nav": {
+    "dashboard": "డ్యాష్‌బోర్డ్",
+    "map": "లైవ్ మ్యాప్",
+    "risk": "రిస్క్ మానిటరింగ్",
+    "drone": "డ్రోన్ ఇన్స్టెలిజెన్స్",
+    "workers": "ఉద్యోగులు",
+    "weather": "వాతావరణం",
+    "analytics": "అనాలిటిక్స్",
+    "alerts": "అలర్ట్స్",
+    "explain": "Explainable AI",
+    "terrain": "భూగోళ విశ్లేషణ",
+    "settings": "సెట్టింగ్స్"
+  },
+  "operations_dashboard": "ఆపరేషన్స్ డ్యాష్‌బోర్డ్",
+  "real_time_monitoring": "రియల్-టైమ్ ఖనిజ భద్రతా మానిటరింగ్ — రియల్-టైమ్ అప్డేట్స్",
+  "acknowledge": "ఆమోదించు",
+  "dismiss": "రద్దు",
+  "acknowledged": "ఆమోదించబడింది",
+  "dismissed": "రద్దు చేయబడింది",
+  "uploading": "అప్‌లోడ్ అవుతోంది…",
+  "upload_failed": "అప్‌లోడ్ విఫలమయ్యింది",
+  "ai_analysis_complete": "AI విశ్లేషణ పూర్తి",
+  "error": { "generic": "ఆపరేషన్ విఫలమైంది" }
+}

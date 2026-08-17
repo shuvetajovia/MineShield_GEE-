@@ -1,0 +1,19 @@
+{
+  "refresh": "Refresh",
+  "run_prediction": "Run Prediction",
+  "nav": {
+    "dashboard": "Dashboard",
+    "map": "Live Map",
+    "risk": "Risk Monitoring",
+    "drone": "Drone Intelligence",
+    "workers": "Workers",
+    "weather": "Weather",
+    "analytics": "Analytics",
+    "alerts": "Alerts",
+    "explain": "Explainable AI",
+    "terrain": "Terrain Analysis",
+    "settings": "Settings"
+  },
+  "operations_dashboard": "Operations Dashboard",
+  "real_time_monitoring": "Real-time mine safety monitoring — Real-time updates"
+}
