@@ -22,8 +22,54 @@
 
   <!-- App CSS -->
   <link rel="stylesheet" href="css/app.css" />
+  <!-- PWA manifest -->
+  <link rel="manifest" href="/manifest.json">
 </head>
 <body>
+
+<!-- Login Screen Overlay -->
+<div id="login-overlay" class="login-overlay">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo">
+        <svg width="48" height="48" viewBox="0 0 28 28" fill="none">
+          <polygon points="14,2 26,22 2,22" fill="none" stroke="#f97316" stroke-width="2.5"/>
+          <polygon points="14,8 22,20 6,20" fill="#f97316" opacity="0.25"/>
+          <line x1="14" y1="8" x2="14" y2="18" stroke="#ef4444" stroke-width="2"/>
+          <circle cx="14" cy="20" r="1.5" fill="#ef4444"/>
+        </svg>
+      </div>
+      <h2>MineShield Portal</h2>
+      <p>Simplified Safety Sign-In via OTP</p>
+    </div>
+    <form id="otp-login-form" onsubmit="event.preventDefault();">
+      <div class="form-group">
+        <label for="login-name">Worker / User Name</label>
+        <input type="text" id="login-name" class="form-input" placeholder="e.g. Arjun Sharma" required>
+      </div>
+      <div class="form-group">
+        <label for="login-contact">Mobile Number or Email</label>
+        <input type="text" id="login-contact" class="form-input" placeholder="e.g. +919876543210 or ops@email.com" required>
+      </div>
+      
+      <button type="button" id="btn-send-otp" class="btn btn-primary login-btn" onclick="App.handleSendOTP()">
+        Send Verification OTP
+      </button>
+      
+      <!-- OTP Verify Panel -->
+      <div id="otp-verify-panel" style="display: none; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 20px;">
+        <div class="form-group">
+          <label for="login-otp">Enter 6-Digit OTP</label>
+          <input type="text" id="login-otp" class="form-input" placeholder="e.g. 123456" maxlength="6">
+          <span id="otp-hint-message" style="font-size: 0.72rem; color: #22c55e; margin-top: 4px; display: block; text-align: left;"></span>
+        </div>
+        <button type="button" class="btn btn-success login-btn" onclick="App.handleVerifyOTP()" style="box-shadow: 0 4px 14px rgba(34,197,94,0.3);">
+          Verify & Log In
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════ -->
 <!--  APP SHELL                                 -->
@@ -96,6 +142,10 @@
         <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a7.62 7.62 0 010-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         <span>Settings</span>
       </a>
+      <a href="#" class="nav-item" style="color:var(--risk-critical)" onclick="App.handleLogout(event)">
+        <svg class="nav-icon" viewBox="0 0 24 24" style="stroke:var(--risk-critical)"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013-3v1"/></svg>
+        <span>Logout</span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
@@ -118,11 +168,17 @@
       <div class="topbar-mine">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
         <select id="mine-selector" class="mine-select">
+          <option value="GPS">📍 Current GPS Location</option>
           <option value="MINE-OB-001">Odisha Bauxite Mine — Sector 7</option>
-          <option value="MINE-JH-001">Jharkhand Iron Mine — Pit A</option>
-          <option value="MINE-RJ-001">Rajasthan Marble Mine</option>
-          <option value="MINE-MP-001">MP Coal — Block 4</option>
-          <option value="MINE-KA-001">Karnataka Gold Mine</option>
+          <option value="MINE-JH-001">Jharkhand Iron & Steel Mine — Pit A</option>
+          <option value="MINE-RJ-001">Rajasthan Marble Mine — Quarry 4</option>
+          <option value="MINE-MP-001">Madhya Pradesh Coal Mine — Block 4</option>
+          <option value="MINE-CG-001">Chhattisgarh Iron Mine — West Pit</option>
+          <option value="MINE-KA-001">Karnataka Gold Mine — South Ridge</option>
+          <option value="MINE-GJ-001">Gujarat Limestone Mine — North Quarry</option>
+          <option value="MINE-AP-001">Andhra Pradesh Granite Mine — Kurnool</option>
+          <option value="MINE-TN-001">Tamil Nadu Chromite Mine — Salem Belt</option>
+          <option value="MINE-WB-001">West Bengal Copper Mine — Raniganj</option>
         </select>
       </div>
 
@@ -130,6 +186,16 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="#60a5fa" stroke="none"><path d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"/></svg>
         <span id="topbar-temp">--°C</span>
         <span id="topbar-condition" class="weather-cond">Loading…</span>
+      </div>
+
+      <div class="topbar-lang" id="topbar-lang">
+        <select id="lang-select" aria-label="Language selector">
+          <option value="en">English</option>
+          <option value="hi">हिन्दी</option>
+          <option value="ta">தமிழ்</option>
+          <option value="te">తెలుగు</option>
+          <option value="mr">मराठी</option>
+        </select>
       </div>
 
       <div class="topbar-alerts" id="topbar-alerts" data-page="alerts">
@@ -141,10 +207,10 @@
       </div>
 
       <div class="topbar-user">
-        <div class="user-avatar">AS</div>
+        <div class="user-avatar" id="user-avatar">OU</div>
         <div class="user-info">
-          <span class="user-name">Arjun Sharma</span>
-          <span class="user-role">Chief Safety Officer</span>
+          <span class="user-name" id="user-name">Operations User</span>
+          <span class="user-role" id="user-role">Site Operations Manager</span>
         </div>
       </div>
     </header>
@@ -159,6 +225,11 @@
         <div class="page-header">
           <div>
             <h1 class="page-title">Operations Dashboard</h1>
+          <script>
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('/sw.js').then(() => console.log('Service worker registered')).catch(e => console.warn('SW register failed', e));
+            }
+          </script>
             <p class="page-sub">Real-time mine safety monitoring — <span id="dash-timestamp">--</span></p>
           </div>
           <div class="page-actions">
@@ -325,11 +396,37 @@
             </div>
           </div>
 
-          <!-- AI Recommendations -->
-          <div class="glass-card dash-reco-card">
-            <div class="card-header"><h3>AI Recommendations</h3></div>
-            <div id="dash-recommendations">
-              <div class="loading-spinner">Loading…</div>
+          <!-- Explainable AI (XAI) Panel -->
+          <div class="glass-card dash-xai-card" style="grid-column: span 1;">
+            <div class="card-header">
+              <h3>Explainable AI (XAI) Panel</h3>
+              <div class="live-indicator"><div class="live-dot"></div>ACTIVE</div>
+            </div>
+            <div class="xai-panel-body" style="padding: 12px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px;">
+                <span>AI Risk Score: <strong id="xai-score" style="color:var(--risk-critical); font-family:'JetBrains Mono',monospace;">--</strong></span>
+                <span>Confidence: <strong id="xai-confidence" style="color:var(--blue); font-family:'JetBrains Mono',monospace;">--</strong></span>
+              </div>
+              <div>
+                <h4 style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase;">Top Contributing Factors</h4>
+                <div id="xai-factors" style="display: flex; flex-direction: column; gap: 6px;">
+                  <div class="loading-spinner">Loading factors…</div>
+                </div>
+              </div>
+              <div>
+                <h4 style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase;">Recommended Action Plan</h4>
+                <div id="xai-actions" style="display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem; color: var(--text-muted);">
+                  <div class="loading-spinner">Loading actions…</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Geotechnical Sensors -->
+          <div class="glass-card dash-sensors-card">
+            <div class="card-header"><h3>Geotechnical Sensor Center</h3></div>
+            <div id="sensor-list" class="sensor-list">
+              <div class="loading-spinner">Loading sensors…</div>
             </div>
           </div>
         </div>
@@ -351,11 +448,28 @@
             <label class="toggle-label"><input type="checkbox" id="toggle-drones" checked onchange="MapModule.toggleDrones(this.checked)"> Drones</label>
             <label class="toggle-label"><input type="checkbox" id="toggle-zones" checked onchange="MapModule.toggleZones(this.checked)"> Hazard Zones</label>
           </div>
+          <div class="map-mode-indicator" id="map-mode-badge" style="background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.72rem; display: flex; align-items: center; gap: 6px; margin-right: 12px;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e;" id="map-mode-dot"></div>
+            <span id="map-mode-text">MINE ACCESS MODE</span>
+          </div>
           <div class="map-status">
             <div class="live-dot"></div>
             <span>Live Tracking</span>
           </div>
         </div>
+
+        <!-- Google Maps–Style Search Bar -->
+        <div class="map-search-container">
+          <div class="search-input-wrap">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="map-search-input" placeholder="Search mines, cities, landmarks, coordinates..." onfocus="MapModule.showSearchSuggestions(true)" oninput="MapModule.handleSearchInput(this.value)">
+            <button class="clear-search-btn" id="btn-clear-search" onclick="MapModule.clearSearch()" style="display:none;">&times;</button>
+          </div>
+          <div class="search-suggestions" id="search-suggestions" style="display:none;">
+            <!-- suggestions injected dynamically -->
+          </div>
+        </div>
+
         <div id="live-map"></div>
         <div class="map-info-panel">
           <div class="gps-panel">
@@ -370,6 +484,18 @@
               <div><span class="gps-label">Heading</span><span class="gps-val" id="gps-heading">--°</span></div>
             </div>
             <div class="gps-time" id="gps-time">--</div>
+          </div>
+
+          <!-- Location Information Panel -->
+          <div class="gps-panel" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
+            <div class="gps-header" id="loc-status-header" style="color: #22c55e;">
+              🛡️ VERIFIED MINE
+            </div>
+            <div style="font-size: 0.76rem; margin-top: 8px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 6px;">
+              <div>Mine Site: <strong id="loc-mine-name" style="color: var(--text-primary);">Odisha Bauxite Mine</strong></div>
+              <div>Distance: <strong id="loc-mine-dist" style="color: var(--text-primary);">0.0 km</strong></div>
+              <div>Verification: <span id="loc-mon-mode" style="background: rgba(34,197,94,0.12); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 0.65rem; margin-left: 4px;">VERIFIED</span></div>
+            </div>
           </div>
         </div>
       </section>
@@ -489,8 +615,9 @@
               </div>
             </div>
             <div class="drone-canvas-wrap">
-              <canvas id="droneCanvas" width="600" height="400"></canvas>
-              <div class="drone-overlay-info">
+              <div id="droneMap" style="width:100%; height:100%;"></div>
+              <canvas id="droneCanvas" width="600" height="400" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; pointer-events:none;"></canvas>
+              <div class="drone-overlay-info" style="z-index:3;">
                 <div class="doi-item"><span>ALT</span><strong id="drone-alt">45m</strong></div>
                 <div class="doi-item"><span>BATT</span><strong id="drone-batt">67%</strong></div>
                 <div class="doi-item"><span>AREA</span><strong id="drone-area">12,000 m²</strong></div>
@@ -760,26 +887,369 @@
       <!-- ══════════════════════════════════════════ -->
       <section class="page" id="page-terrain">
         <div class="page-header">
-          <h1 class="page-title">Terrain Analysis Panel</h1>
-          <p class="page-sub">DEM-derived topographic and spectral indices</p>
-        </div>
-        <div class="terrain-grid">
-          <div class="glass-card terrain-metrics-card">
-            <div class="card-header"><h3>Topographic Metrics</h3></div>
-            <div class="terrain-metrics" id="terrain-metrics">
-              <div class="loading-spinner">Loading terrain data…</div>
+          <div class="terrain-page-title-row">
+            <div>
+              <h1 class="page-title">Terrain Analysis Panel</h1>
+              <p class="page-sub">Live GEE-derived geospatial features · Copernicus DEM · Sentinel-1/2 · WorldCover · SMAP</p>
+            </div>
+            <div class="terrain-header-actions">
+              <span class="terrain-datasrc-badge" id="terrain-datasrc-badge">
+                <span class="terrain-datasrc-dot" id="terrain-datasrc-dot"></span>
+                <span id="terrain-datasrc-label">Loading…</span>
+              </span>
+              <span class="terrain-updated-label" id="terrain-updated-label">—</span>
+              <button class="btn-terrain-refresh" id="btn-terrain-refresh" onclick="TerrainPanel.refresh()" title="Re-fetch terrain data from GEE">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                Refresh
+              </button>
             </div>
           </div>
-          <div class="glass-card terrain-spectral-card">
-            <div class="card-header"><h3>Spectral Indices</h3></div>
+        </div>
+
+        <!-- Status / confidence bar -->
+        <div class="terrain-status-bar" id="terrain-status-bar">
+          <div class="terrain-status-item"><span class="tsb-dot tsb-dot--high"></span> High confidence (&gt;90%)</div>
+          <div class="terrain-status-item"><span class="tsb-dot tsb-dot--med"></span> Medium confidence (70–90%)</div>
+          <div class="terrain-status-item"><span class="tsb-dot tsb-dot--low"></span> Simulated (&lt;70%)</div>
+          <div class="terrain-status-sep"></div>
+          <div class="terrain-status-item" id="terrain-cache-status">Cache: —</div>
+        </div>
+
+        <!-- ── GROUP 1: Topographic ── -->
+        <div class="terrain-group-label">
+          <span class="tgl-icon">⛰️</span> Topographic Metrics
+          <span class="tgl-src" id="tgl-src-dem">Copernicus GLO-30 DEM</span>
+        </div>
+        <div class="terrain-feature-grid" id="terrain-topo-grid">
+          <!-- Elevation -->
+          <div class="terrain-feature-card" id="tfc-elevation" title="Mean terrain elevation above sea level (MSL) derived from the Copernicus GLO-30 DEM at 30m resolution. Higher elevation correlates with increased rockfall potential.">
+            <div class="tfc-icon-wrap tfc-icon--topo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">Elevation</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-elevation"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">m</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--topo" id="tp-elevation" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-elevation">—</span>
+                <span class="tfc-acq-date" id="tad-elevation">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-elevation">—</div>
+            </div>
+          </div>
+
+          <!-- Slope -->
+          <div class="terrain-feature-card" id="tfc-slope" title="Mean slope angle in degrees computed from the DEM using Horn's method. Slopes >35° are high-risk for rockfall initiation in open-pit mines.">
+            <div class="tfc-icon-wrap tfc-icon--topo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21 L21 3"/><path d="M3 21 L21 21"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">Slope</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-slope"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">°</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--topo" id="tp-slope" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-slope">—</span>
+                <span class="tfc-acq-date" id="tad-slope">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-slope">—</div>
+            </div>
+          </div>
+
+          <!-- TRI -->
+          <div class="terrain-feature-card" id="tfc-tri" title="Terrain Ruggedness Index (TRI) measures mean absolute deviation of elevation in a local neighbourhood. High TRI indicates irregular, unstable terrain prone to rockfall.">
+            <div class="tfc-icon-wrap tfc-icon--topo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">TRI</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-tri"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">idx</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--topo" id="tp-tri" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-tri">—</span>
+                <span class="tfc-acq-date" id="tad-tri">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-tri">—</div>
+            </div>
+          </div>
+
+          <!-- TPI -->
+          <div class="terrain-feature-card" id="tfc-tpi" title="Topographic Position Index (TPI) = centre elevation minus mean neighbourhood elevation. Negative values indicate valley/depression; positive = ridge. Ridges have elevated rockfall risk.">
+            <div class="tfc-icon-wrap tfc-icon--topo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">TPI</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-tpi"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">m</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--topo" id="tp-tpi" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-tpi">—</span>
+                <span class="tfc-acq-date" id="tad-tpi">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-tpi">—</div>
+            </div>
+          </div>
+
+          <!-- Terrain Roughness -->
+          <div class="terrain-feature-card" id="tfc-roughness" title="Terrain Roughness is the max-min elevation range within a local window (m). High roughness indicates fractured, uneven terrain with block instability risk.">
+            <div class="tfc-icon-wrap tfc-icon--topo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20 L7 10 L12 15 L17 5 L22 20"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">Terrain Roughness</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-roughness"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">m</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--topo" id="tp-roughness" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-roughness">—</span>
+                <span class="tfc-acq-date" id="tad-roughness">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-roughness">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── GROUP 2: Spectral Indices ── -->
+        <div class="terrain-group-label">
+          <span class="tgl-icon">🛰️</span> Spectral Indices
+          <span class="tgl-src" id="tgl-src-s2">Sentinel-2 SR (90-day composite)</span>
+        </div>
+        <div class="terrain-feature-grid" id="terrain-spectral-grid">
+          <!-- NDVI -->
+          <div class="terrain-feature-card" id="tfc-ndvi" title="Normalized Difference Vegetation Index (NDVI) = (NIR–Red)/(NIR+Red). Range: -1 to 1. Values near 0 or negative indicate bare soil / rock exposure. Negative NDVI in mine areas signals active excavation.">
+            <div class="tfc-icon-wrap tfc-icon--spectral"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 1 0 20"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">NDVI</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-ndvi"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">idx</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--spectral" id="tp-ndvi" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-ndvi">—</span>
+                <span class="tfc-acq-date" id="tad-ndvi">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-ndvi">—</div>
+            </div>
+          </div>
+
+          <!-- NDWI -->
+          <div class="terrain-feature-card" id="tfc-ndwi" title="Normalized Difference Water Index (NDWI) = (Green–NIR)/(Green+NIR). Positive values indicate surface water / high moisture content. Elevated NDWI increases slope instability risk.">
+            <div class="tfc-icon-wrap tfc-icon--spectral"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6l3 3-3 3v4l-3-3 3-3"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">NDWI</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-ndwi"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">idx</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--spectral" id="tp-ndwi" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-ndwi">—</span>
+                <span class="tfc-acq-date" id="tad-ndwi">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-ndwi">—</div>
+            </div>
+          </div>
+
+          <!-- BSI -->
+          <div class="terrain-feature-card" id="tfc-bsi" title="Bare Soil Index (BSI) = ((SWIR1+Red)-(NIR+Blue)) / ((SWIR1+Red)+(NIR+Blue)). High values (>0.3) indicate extensive bare soil/overburden, a key rockfall precursor indicator.">
+            <div class="tfc-icon-wrap tfc-icon--spectral"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">Bare Soil Index</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-bsi"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">idx</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--spectral" id="tp-bsi" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-bsi">—</span>
+                <span class="tfc-acq-date" id="tad-bsi">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-bsi">—</div>
+            </div>
+          </div>
+
+          <!-- Rock Exposure -->
+          <div class="terrain-feature-card tfc-highlight" id="tfc-rock" title="Rock Exposure Index: computed from Sentinel-2 SWIR2/NIR ratio (REI = (B12-B8)/(B12+B8)), normalized to 0–100%. High percentages indicate exposed bedrock — the primary rockfall source material.">
+            <div class="tfc-icon-wrap tfc-icon--alert"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 21 2 21"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">Rock Exposure</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-rock"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">%</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--alert" id="tp-rock" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-rock">—</span>
+                <span class="tfc-acq-date" id="tad-rock">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-rock">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── GROUP 3: SAR Backscatter ── -->
+        <div class="terrain-group-label">
+          <span class="tgl-icon">📡</span> SAR Backscatter
+          <span class="tgl-src" id="tgl-src-s1">Sentinel-1 GRD (IW, C-Band, 30-day)</span>
+        </div>
+        <div class="terrain-feature-grid-sar" id="terrain-sar-grid">
+          <!-- VV -->
+          <div class="terrain-feature-card" id="tfc-vv" title="VV polarization SAR backscatter in dB (C-band, IW mode). Sensitive to surface roughness and soil moisture. Values typically −20 to −5 dB for mining terrain; wetter soil produces stronger backscatter.">
+            <div class="tfc-icon-wrap tfc-icon--sar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">VV Backscatter</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-vv"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">dB</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--sar" id="tp-vv" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-vv">—</span>
+                <span class="tfc-acq-date" id="tad-vv">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-vv">—</div>
+            </div>
+          </div>
+
+          <!-- VH -->
+          <div class="terrain-feature-card" id="tfc-vh" title="VH cross-polarization SAR backscatter in dB. More sensitive to vegetation volume and structural complexity. The VV–VH difference (dual-pol ratio) is a key feature for the XGBoost model.">
+            <div class="tfc-icon-wrap tfc-icon--sar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">VH Backscatter</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-vh"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">dB</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--sar" id="tp-vh" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-vh">—</span>
+                <span class="tfc-acq-date" id="tad-vh">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-vh">—</div>
+            </div>
+          </div>
+
+          <!-- SAR chart full width -->
+          <div class="glass-card terrain-sar-chart-card">
+            <div class="card-header"><h3>SAR Backscatter Profile</h3></div>
+            <canvas id="sarChart" height="200"></canvas>
+          </div>
+        </div>
+
+        <!-- ── GROUP 4: Land & Soil ── -->
+        <div class="terrain-group-label">
+          <span class="tgl-icon">🌍</span> Land Cover &amp; Soil
+          <span class="tgl-src" id="tgl-src-lc">ESA WorldCover · NASA SMAP</span>
+        </div>
+        <div class="terrain-feature-grid" id="terrain-land-grid">
+          <!-- Land Cover -->
+          <div class="terrain-feature-card" id="tfc-lc" title="Land cover classification from ESA WorldCover 10m (2021). 'Bare Rock / Excavated Area' indicates active or former mining. This is used as a categorical feature (encoded as integer) in the XGBoost model.">
+            <div class="tfc-icon-wrap tfc-icon--land"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">Land Cover Class</div>
+              <div class="tfc-value-row" style="margin-top:6px">
+                <span class="tfc-value tfc-value--text" id="tv-lc"><span class="tfc-skeleton tfc-skeleton--wide"></span></span>
+              </div>
+              <div class="tfc-meta-row" style="margin-top:8px">
+                <span class="tfc-confidence-pill" id="tcp-lc">—</span>
+                <span class="tfc-acq-date" id="tad-lc">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-lc">—</div>
+            </div>
+          </div>
+
+          <!-- Soil Moisture -->
+          <div class="terrain-feature-card" id="tfc-sm" title="Volumetric soil moisture [m³/m³] from NASA SMAP Level-4 at 9km resolution (ERA5 as fallback). High soil moisture (>0.35) dramatically increases pore pressure and slope failure risk.">
+            <div class="tfc-icon-wrap tfc-icon--land"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></div>
+            <div class="tfc-body">
+              <div class="tfc-label">Soil Moisture</div>
+              <div class="tfc-value-row">
+                <span class="tfc-value" id="tv-sm"><span class="tfc-skeleton"></span></span>
+                <span class="tfc-unit">m³/m³</span>
+              </div>
+              <div class="tfc-progress-wrap"><div class="tfc-progress tfc-progress--land" id="tp-sm" style="width:0%"></div></div>
+              <div class="tfc-meta-row">
+                <span class="tfc-confidence-pill" id="tcp-sm">—</span>
+                <span class="tfc-acq-date" id="tad-sm">—</span>
+              </div>
+              <div class="tfc-source-tag" id="ts-sm">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Spectral Radar Chart ── -->
+        <div class="terrain-chart-row">
+          <div class="glass-card terrain-radar-card">
+            <div class="card-header"><h3>Spectral Index Radar</h3></div>
             <canvas id="terrainRadarChart" height="280"></canvas>
           </div>
-          <div class="glass-card terrain-sar-card">
-            <div class="card-header"><h3>SAR Backscatter</h3></div>
-            <canvas id="sarChart" height="220"></canvas>
+
+          <!-- ── XGBoost Feature Vector Panel ── -->
+          <div class="glass-card terrain-xgb-card">
+            <div class="card-header terrain-xgb-header" id="btn-xgb-toggle" onclick="TerrainPanel.toggleXgb()" style="cursor:pointer">
+              <h3>⚙️ XGBoost Feature Vector</h3>
+              <span class="xgb-toggle-arrow" id="xgb-arrow">▼</span>
+            </div>
+            <div id="terrain-xgb-panel" class="terrain-xgb-content" style="display:none">
+              <p class="xgb-desc">Model-ready feature dict. Copy into your XGBoost/SHAP inference pipeline.</p>
+              <div class="xgb-toolbar">
+                <button class="btn-xgb-copy" onclick="TerrainPanel.copyFeatures()" title="Copy to clipboard">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  Copy JSON
+                </button>
+                <span class="xgb-feature-count" id="xgb-feature-count">— features</span>
+              </div>
+              <pre class="xgb-json-block" id="xgb-json-block"><span class="tfc-skeleton tfc-skeleton--wide"></span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terrain Risk Explanation Cards -->
+        <div class="terrain-group-label" style="margin-top: 30px;">
+          <span class="tgl-icon">📚</span> Terrain Risk Classification Guidelines
+        </div>
+        <div class="terrain-explanation-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+          <div class="glass-card" style="padding: 16px;">
+            <h4 style="color: var(--accent); font-size: 0.85rem; margin-bottom: 8px;">Slope Stability Rules</h4>
+            <ul style="font-size: 0.74rem; color: var(--text-secondary); padding-left: 16px; display: flex; flex-direction: column; gap: 6px; line-height: 1.3;">
+              <li><strong>Low (&lt; 5°):</strong> Stable, flat terrains. Minimal risk.</li>
+              <li><strong>Moderate (5–15°):</strong> Monitor loose soil / overburden.</li>
+              <li><strong>High (15–30°):</strong> Steep profile. Anchoring recommended.</li>
+              <li><strong>Very High (&gt; 30°):</strong> Critical failure risk. Evacuate active pits.</li>
+            </ul>
+          </div>
+          <div class="glass-card" style="padding: 16px;">
+            <h4 style="color: #22c55e; font-size: 0.85rem; margin-bottom: 8px;">Topographic Elevation Risk</h4>
+            <ul style="font-size: 0.74rem; color: var(--text-secondary); padding-left: 16px; display: flex; flex-direction: column; gap: 6px; line-height: 1.3;">
+              <li><strong>Low (&lt; 400m):</strong> Low baseline potential energy.</li>
+              <li><strong>Moderate (400–600m):</strong> standard bench slopes.</li>
+              <li><strong>High (600–800m):</strong> Deep pit wall exposure.</li>
+              <li><strong>Very High (&gt; 800m):</strong> Max baseline height differential.</li>
+            </ul>
+          </div>
+          <div class="glass-card" style="padding: 16px;">
+            <h4 style="color: #60a5fa; font-size: 0.85rem; margin-bottom: 8px;">Spectral Indices (NDVI / Rock)</h4>
+            <ul style="font-size: 0.74rem; color: var(--text-secondary); padding-left: 16px; display: flex; flex-direction: column; gap: 6px; line-height: 1.3;">
+              <li><strong>High NDVI (&gt; 0.4):</strong> Heavily vegetated. Roots bind slope soil.</li>
+              <li><strong>Low NDVI (&lt; 0.15):</strong> Sparse vegetation. Bare soil exposure.</li>
+              <li><strong>High Rock Exposure (&gt; 60%):</strong> Highly fractured bare bedrock.</li>
+            </ul>
+          </div>
+          <div class="glass-card" style="padding: 16px;">
+            <h4 style="color: #8b5cf6; font-size: 0.85rem; margin-bottom: 8px;">SAR backscatter (VV / VH)</h4>
+            <ul style="font-size: 0.74rem; color: var(--text-secondary); padding-left: 16px; display: flex; flex-direction: column; gap: 6px; line-height: 1.3;">
+              <li><strong>Low stddev (&lt; 0.5):</strong> Minimal surface deformation.</li>
+              <li><strong>Moderate stddev (0.5–1.5):</strong> Standard operational movement.</li>
+              <li><strong>High stddev (&gt; 1.5):</strong> Significant ground displacement.</li>
+            </ul>
           </div>
         </div>
       </section>
+
 
       <!-- ══════════════════════════════════════════ -->
       <!-- PAGE: SETTINGS                            -->
@@ -824,7 +1294,7 @@
             <div class="settings-form">
               <div class="form-group">
                 <label>Backend API URL</label>
-                <input type="text" value="http://localhost:8000" id="api-url" class="form-input">
+                <input type="text" value="http://127.0.0.1:8000" id="api-url" class="form-input">
               </div>
               <div class="form-group">
                 <label>Refresh Interval (seconds)</label>
@@ -904,6 +1374,9 @@
 <script src="js/map.js"></script>
 <script src="js/alerts.js"></script>
 <script src="js/workers.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/sensors.js"></script>
+<script src="js/terrain.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./mineshield_app/backend
+          file: ./mineshield_app/backend/Dockerfile
+          platform: linux/amd64
+          push: false
+          tags: mineshield/backend:ci-latest
+
+      - name: Run container
+        run: |
+          docker run -d --name mineshield_ci -p 8000:8000 mineshield/backend:ci-latest
+
+      - name: Wait for service
+        run: |
+          for i in {1..30}; do
+            if curl -sS http://localhost:8000/ >/dev/null 2>&1; then
+              echo 'Service is up'; exit 0;
+            fi
+            echo 'Waiting...'; sleep 2;
+          done
+          echo 'Service failed to start'; docker logs mineshield_ci; exit 1
+
+      - name: Smoke test /docs
+        run: |
+          curl -fsS http://localhost:8000/docs >/dev/null
+
+      - name: Teardown
+        if: always()
+        run: |
+          docker rm -f mineshield_ci || true

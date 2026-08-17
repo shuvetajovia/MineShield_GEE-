@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  mineshield:
+    build:
+      context: ./mineshield_app/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./mineshield_app:/app
+    environment:
+      - SMTP_HOST=
+      - SMTP_PORT=587
+      - SMTP_USER=
+      - SMTP_PASS=
+      - TWILIO_SID=
+      - TWILIO_TOKEN=
+      - TWILIO_FROM=
+    restart: unless-stopped

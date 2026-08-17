@@ -66,10 +66,10 @@ const AlertsModule = (() => {
         </div>
         <div class="alert-card-footer">
           ${!a.acknowledged
-            ? `<button class="btn btn-outline" onclick="AlertsModule.ack('${a.id}')">Acknowledge</button>`
-            : '<span style="color:var(--text-muted);font-size:0.75rem">✓ Acknowledged</span>'
+            ? `<button class="btn btn-outline" onclick="AlertsModule.ack('${a.id}')">${I18n.t('acknowledge','Acknowledge')}</button>`
+            : `<span style="color:var(--text-muted);font-size:0.75rem">✓ ${I18n.t('acknowledged','Acknowledged')}</span>`
           }
-          <button class="btn btn-outline" onclick="AlertsModule.dismiss('${a.id}')">Dismiss</button>
+          <button class="btn btn-outline" onclick="AlertsModule.dismiss('${a.id}')">${I18n.t('dismiss','Dismiss')}</button>
         </div>
       </div>
     `).join('');
@@ -96,17 +96,25 @@ const AlertsModule = (() => {
   }
 
   function ack(id) {
-    const a = allAlerts.find(x => x.id === id);
-    if (a) a.acknowledged = true;
-    render();
-    App.showToast(`Alert ${id} acknowledged`, 'success');
+    API.ackAlert(id).then(res => {
+      const a = allAlerts.find(x => x.id === id);
+      if (a) a.acknowledged = true;
+      render();
+      App.showToast(I18n.t('acknowledged', 'Acknowledged'), 'success');
+    }).catch(() => {
+      App.showToast(I18n.t('error.generic', 'Operation failed'), 'error');
+    });
   }
 
   function dismiss(id) {
-    allAlerts = allAlerts.filter(a => a.id !== id);
-    render();
-    renderDashAlerts();
-    App.showToast(`Alert ${id} dismissed`, 'info');
+    API.dismissAlert(id).then(res => {
+      allAlerts = allAlerts.filter(a => a.id !== id);
+      render();
+      renderDashAlerts();
+      App.showToast(I18n.t('dismissed', 'Dismissed'), 'info');
+    }).catch(() => {
+      App.showToast(I18n.t('error.generic', 'Operation failed'), 'error');
+    });
   }
 
   function acknowledge() {
@@ -141,8 +149,28 @@ const AlertsModule = (() => {
 const DroneModule = (() => {
   let animFrame = null;
   let droneData = null;
+  let droneMap = null;
 
-  const TERRAIN_BG_COLOR = '#1a2030';
+  function initMap(lat, lon) {
+    if (!window.L) return;
+    if (droneMap) {
+      droneMap.setView([lat, lon], 16);
+      return;
+    }
+    const mapEl = document.getElementById('droneMap');
+    if (!mapEl) return;
+    
+    droneMap = L.map('droneMap', {
+      zoomControl: false,
+      attributionControl: false,
+      dragging: true,
+      scrollWheelZoom: true,
+      doubleClickZoom: true,
+      boxZoom: false
+    }).setView([lat, lon], 16);
+    
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(droneMap);
+  }
 
   function drawScene(detections) {
     const canvas = document.getElementById('droneCanvas');
@@ -150,24 +178,18 @@ const DroneModule = (() => {
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
 
-    // Draw dark terrain background
-    ctx.fillStyle = TERRAIN_BG_COLOR;
-    ctx.fillRect(0, 0, W, H);
+    // Clear transparent canvas
+    ctx.clearRect(0, 0, W, H);
 
-    // Draw simulated terrain texture
-    ctx.fillStyle = 'rgba(255,255,255,0.03)';
-    for (let i = 0; i < 20; i++) {
-      ctx.fillRect(Math.random() * W, Math.random() * H, 50 + Math.random() * 100, 2);
+    // Draw a subtle digital HUD grid overlay over the terrain
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 1;
+    const gridSize = 40;
+    for (let x = 0; x < W; x += gridSize) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
     }
-    ctx.fillStyle = 'rgba(180,120,60,0.15)';
-    for (let i = 0; i < 30; i++) {
-      ctx.beginPath();
-      ctx.ellipse(
-        Math.random() * W, Math.random() * H,
-        20 + Math.random() * 60, 10 + Math.random() * 30,
-        Math.random() * Math.PI, 0, 2 * Math.PI
-      );
-      ctx.fill();
+    for (let y = 0; y < H; y += gridSize) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
     }
 
     // Draw bounding boxes for detections
@@ -221,7 +243,10 @@ const DroneModule = (() => {
     ctx.font      = '10px JetBrains Mono, monospace';
     ctx.fillText(`REC ●  ${new Date().toLocaleTimeString()}`, W - 140, 16);
     ctx.fillText(`ALT: 45m  ZOOM: 1.0x`, 8, 16);
-    ctx.fillText(`GPS: 20.594°N 78.963°E`, 8, H - 8);
+    
+    const latStr = droneData && droneData.gps_lat ? droneData.gps_lat.toFixed(5) : '20.59370';
+    const lonStr = droneData && droneData.gps_lon ? droneData.gps_lon.toFixed(5) : '78.96290';
+    ctx.fillText(`GPS: ${latStr}°N ${lonStr}°E`, 8, H - 8);
   }
 
   function animate() {
@@ -256,10 +281,15 @@ const DroneModule = (() => {
     document.getElementById('drone-batt').textContent  = `${data.battery_pct}%`;
     document.getElementById('drone-area').textContent  = `${data.coverage_area_sqm?.toLocaleString()} m²`;
     document.getElementById('drone-time').textContent  = `${data.flight_time_min} min`;
+
+    if (data.gps_lat && data.gps_lon) {
+      initMap(data.gps_lat, data.gps_lon);
+    }
   }
 
   async function load() {
-    const data = await API.getDrone();
+    const coords = typeof App !== 'undefined' ? App.getActiveCoords() : { lat: 20.5937, lon: 78.9629 };
+    const data = await API.getDrone(coords.lat, coords.lon);
     if (!data) return;
     droneData = data;
     renderDetectionList(data.detections);
@@ -275,11 +305,16 @@ const DroneModule = (() => {
   function handleUpload(evt) {
     const file = evt.target.files[0];
     if (!file) return;
-    App.showToast(`Analysing ${file.name}…`, 'info');
-    setTimeout(() => {
-      App.showToast('AI analysis complete — 3 anomalies detected', 'warning');
-      load();
-    }, 2000);
+    App.showToast(`Uploading ${file.name}…`, 'info');
+    API.uploadDrone(file).then(res => {
+      if (!res) { App.showToast('Upload failed', 'error'); return; }
+      App.showToast('AI analysis complete', 'success');
+      // Use returned detections
+      droneData = res;
+      renderDetectionList(res.detections || []);
+      renderTelemetry(res);
+      if (!animFrame) animate();
+    });
   }
 
   return { load, simulateFlight, handleUpload };

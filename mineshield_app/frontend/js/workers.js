@@ -5,7 +5,8 @@ const WorkerModule = (() => {
   let workers = [];
 
   function statusBadge(s) {
-    return `<span class="status-badge ${s}">${s}</span>`;
+    const cls = s.toUpperCase().replace(/\s+/g, '-');
+    return `<span class="status-badge ${cls}">${s}</span>`;
   }
 
   function render(data) {
@@ -69,7 +70,8 @@ const WorkerModule = (() => {
   }
 
   async function refresh() {
-    const data = await API.getWorkers(20.5937, 78.9629);
+    const coords = typeof App !== 'undefined' ? App.getActiveCoords() : { lat: 20.5937, lon: 78.9629 };
+    const data = await API.getWorkers(coords.lat, coords.lon);
     if (data) render(data);
   }
 
@@ -108,9 +110,8 @@ const RiskModule = (() => {
       document.getElementById(`rl-${r.toLowerCase()}`)?.classList.toggle('active', r === risk);
     });
 
-    // Recommendations
+    // Recommendations & XAI
     const recoContainer = document.getElementById('risk-recommendations');
-    const dashRecoContainer = document.getElementById('dash-recommendations');
     if (data.recommendations) {
       const icons = RECO_ICONS[risk] || [];
       const html = data.recommendations.map((r, i) => `
@@ -120,7 +121,38 @@ const RiskModule = (() => {
         </div>
       `).join('');
       if (recoContainer) recoContainer.innerHTML = html;
-      if (dashRecoContainer) dashRecoContainer.innerHTML = html;
+    }
+
+    if (data.explainable_ai) {
+      const xai = data.explainable_ai;
+      const scoreEl = document.getElementById('xai-score');
+      const confEl = document.getElementById('xai-confidence');
+      const factorsEl = document.getElementById('xai-factors');
+      const actionsEl = document.getElementById('xai-actions');
+      
+      if (scoreEl) scoreEl.textContent = `${xai.risk_score}% (${risk})`;
+      if (confEl) confEl.textContent = `${Math.round(xai.confidence * 100)}%`;
+      
+      if (factorsEl && xai.contributing_factors) {
+        factorsEl.innerHTML = xai.contributing_factors.map(f => {
+          const color = f.direction === 'increases_risk' ? 'var(--risk-critical)' : 'var(--blue)';
+          return `
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+              <span style="color:var(--text-secondary);">${f.feature}</span>
+              <strong style="color:${color}; font-family:'JetBrains Mono',monospace;">+${f.impact.toFixed(4)}</strong>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      if (actionsEl && xai.recommended_action_plan) {
+        actionsEl.innerHTML = xai.recommended_action_plan.map(a => `
+          <div style="display:flex; gap:6px; align-items:flex-start; font-size: 0.74rem;">
+            <span style="color:var(--risk-high);">▪</span>
+            <span>${a}</span>
+          </div>
+        `).join('');
+      }
     }
 
     // Dashboard gauge
@@ -150,7 +182,8 @@ const RiskModule = (() => {
   async function runLivePrediction() {
     const btn = document.getElementById('run-prediction-btn');
     if (btn) { btn.textContent = 'Running…'; btn.disabled = true; }
-    const data = await API.getLivePrediction();
+    const coords = typeof App !== 'undefined' ? App.getActiveCoords() : { lat: 20.5937, lon: 78.9629 };
+    const data = await API.getLivePrediction(coords.lat, coords.lon);
     if (btn) { btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Live Prediction'; btn.disabled = false; }
     if (data) {
       render(data);

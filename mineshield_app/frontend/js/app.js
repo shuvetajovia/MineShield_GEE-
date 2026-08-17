@@ -7,6 +7,27 @@ const App = (() => {
   let refreshTimer = null;
   const REFRESH_INTERVAL = 30000; // 30 seconds
 
+  function getActiveCoords() {
+    const select = document.getElementById('mine-selector');
+    const mineId = select ? select.value : 'MINE-OB-001';
+    if (mineId === 'GPS' && App && App.userLocation) {
+      return App.userLocation;
+    }
+    const mineCoords = {
+      "MINE-OB-001": { lat: 20.5937, lon: 83.9629 },
+      "MINE-JH-001": { lat: 23.6102, lon: 85.2799 },
+      "MINE-RJ-001": { lat: 25.2138, lon: 75.8648 },
+      "MINE-MP-001": { lat: 22.9734, lon: 78.6569 },
+      "MINE-CG-001": { lat: 21.2787, lon: 81.8661 },
+      "MINE-KA-001": { lat: 15.3173, lon: 75.7139 },
+      "MINE-GJ-001": { lat: 22.2587, lon: 71.1924 },
+      "MINE-AP-001": { lat: 15.9129, lon: 79.7400 },
+      "MINE-TN-001": { lat: 11.1271, lon: 78.6569 },
+      "MINE-WB-001": { lat: 23.5000, lon: 87.1200 }
+    };
+    return mineCoords[mineId] || (App && App.userLocation) || { lat: 20.5937, lon: 78.9629 };
+  }
+
   /* ── Page navigation ── */
   function navigate(page) {
     // Hide all pages
@@ -59,8 +80,17 @@ const App = (() => {
 
     // Mine selector
     document.getElementById('mine-selector')?.addEventListener('change', () => {
-      document.getElementById('dash-mine-id').textContent =
-        document.getElementById('mine-selector').value;
+      const mineId = document.getElementById('mine-selector').value;
+      document.getElementById('dash-mine-id').textContent = mineId;
+      if (typeof MapModule !== 'undefined' && MapModule.focusOnMine) {
+        if (mineId === 'GPS') {
+          if (App.userLocation) {
+            MapModule.focusOnMine('GPS');
+          }
+        } else {
+          MapModule.focusOnMine(mineId);
+        }
+      }
       refreshAll();
     });
   }
@@ -84,31 +114,116 @@ const App = (() => {
   }
 
   /* ── Dashboard data load ── */
+  function updateSessionUser(user) {
+    const nameEl = document.getElementById('user-name');
+    const roleEl = document.getElementById('user-role');
+    const avatarEl = document.getElementById('user-avatar');
+    if (!user) return;
+    if (nameEl) nameEl.textContent = user.name || 'Operations User';
+    if (roleEl) roleEl.textContent = user.role || 'Site Operations Manager';
+    if (avatarEl) avatarEl.textContent = (user.avatar || 'OU').toUpperCase();
+
+    // Common User (Public Mode) restrictions
+    const isCommonUser = user.role === 'Common User';
+    const navWorkers = document.getElementById('nav-workers');
+    const navDrone = document.getElementById('nav-drone');
+    const navSettings = document.getElementById('nav-settings');
+    const toggleWorkers = document.getElementById('toggle-workers');
+    const toggleDrones = document.getElementById('toggle-drones');
+    const runPredBtn = document.getElementById('run-prediction-btn');
+    
+    if (navWorkers) navWorkers.style.display = isCommonUser ? 'none' : 'flex';
+    if (navDrone) navDrone.style.display = isCommonUser ? 'none' : 'flex';
+    if (navSettings) navSettings.style.display = isCommonUser ? 'none' : 'flex';
+    
+    if (toggleWorkers) {
+      toggleWorkers.disabled = isCommonUser;
+      if (isCommonUser) {
+        toggleWorkers.checked = false;
+        if (typeof MapModule !== 'undefined' && MapModule.toggleWorkers) {
+          MapModule.toggleWorkers(false);
+        }
+      }
+    }
+    if (toggleDrones) {
+      toggleDrones.disabled = isCommonUser;
+      if (isCommonUser) {
+        toggleDrones.checked = false;
+        if (typeof MapModule !== 'undefined' && MapModule.toggleDrones) {
+          MapModule.toggleDrones(false);
+        }
+      }
+    }
+    if (runPredBtn) runPredBtn.style.display = isCommonUser ? 'none' : 'block';
+  }
+
+  async function loadSessionUser() {
+    const session = await API.get('/auth/session');
+    if (session && session.user) {
+      updateSessionUser(session.user);
+    }
+  }
+
   async function loadDashboard() {
     updateTimestamp();
+    const session = await API.get('/auth/session');
+    if (session && session.user) {
+      updateSessionUser(session.user);
+    }
 
-    // Load prediction
-    const predData = await API.getLivePrediction();
-    if (predData) {
-      RiskModule.render(predData);
-    } else {
+    // Load prediction with error handling
+    try {
+      const coords = getActiveCoords();
+      const predData = await API.getLivePrediction(coords.lat, coords.lon);
+      if (predData) {
+        RiskModule.render(predData);
+        if (typeof MapModule !== 'undefined' && MapModule.setNearestMine && predData.latitude && predData.longitude) {
+          MapModule.setNearestMine(
+            predData.latitude,
+            predData.longitude,
+            predData.mine_id,
+            predData.verified !== false,
+            predData.confidence_score || 1.0,
+            true, // weatherAvailable
+            true, // terrainAvailable
+            predData.distance_km || 0.0
+          );
+        }
+      } else {
+        RiskModule.renderDemo();
+      }
+    } catch (e) {
+      console.warn('Prediction load failed:', e);
       RiskModule.renderDemo();
     }
 
-    // Load weather
-    const wxData = await API.getWeather();
-    if (wxData) {
-      renderWeatherKPI(wxData);
-      renderDashWeatherWidget(wxData);
+    // Load weather with error handling
+    try {
+      const coords = getActiveCoords();
+      const wxData = await API.getWeather(coords.lat, coords.lon);
+      if (wxData) {
+        renderWeatherKPI(wxData);
+        renderDashWeatherWidget(wxData);
+      }
+    } catch (e) {
+      console.warn('Weather load failed:', e);
     }
 
     // Load alerts
-    await AlertsModule.load();
+    try {
+      await AlertsModule.load();
+    } catch (e) {
+      console.warn('Alerts load failed:', e);
+    }
 
     // Load analytics (for trend chart)
-    const analyticsData = await API.getAnalytics();
-    if (analyticsData) {
-      Charts.renderDashTrend(analyticsData);
+    try {
+      const analyticsData = await API.getAnalytics();
+      if (analyticsData) {
+        Charts.renderDashTrend(analyticsData);
+      }
+    } catch (e) {
+      console.warn('Analytics load failed:', e);
     }
   }
 
@@ -144,7 +259,8 @@ const App = (() => {
 
   /* ── Weather page ── */
   async function loadWeather() {
-    const data = await API.getWeather();
+    const coords = getActiveCoords();
+    const data = await API.getWeather(coords.lat, coords.lon);
     if (!data) { showToast('Could not load weather data', 'error'); return; }
 
     document.getElementById('w-temp').textContent      = `${data.temperature_c}°C`;
@@ -242,36 +358,7 @@ const App = (() => {
 
   /* ── Terrain page ── */
   async function loadTerrain() {
-    const data = await API.getTerrain();
-    if (!data) return;
-
-    const container = document.getElementById('terrain-metrics');
-    if (container) {
-      const metrics = [
-        { label: 'Elevation',        value: `${data.elevation_m} m`,   unit: 'm',    pct: (data.elevation_m / 2000) * 100 },
-        { label: 'Slope',            value: `${data.slope_deg}°`,       unit: 'deg',  pct: (data.slope_deg / 90) * 100 },
-        { label: 'Slope StdDev',     value: data.slope_stddev.toFixed(3), unit: '',  pct: (data.slope_stddev / 30) * 100 },
-        { label: 'TRI',              value: data.tri.toFixed(3),         unit: '',   pct: (data.tri / 60) * 100 },
-        { label: 'TPI',              value: data.tpi.toFixed(3),         unit: '',   pct: Math.abs(data.tpi / 10) * 100 },
-        { label: 'Terrain Roughness',value: data.terrain_roughness.toFixed(2), unit: '', pct: (data.terrain_roughness / 100) * 100 },
-        { label: 'Rock Exposure',    value: (data.rock_exposure * 100).toFixed(1) + '%', unit: '', pct: data.rock_exposure * 100, color: '#ef4444' },
-        { label: 'BSI',              value: data.bsi.toFixed(3),         unit: '',   pct: data.bsi * 100 },
-        { label: 'NDVI',             value: data.ndvi.toFixed(3),        unit: '',   pct: Math.max(0, data.ndvi) * 100, color: '#22c55e' },
-        { label: 'NDWI',             value: data.ndwi.toFixed(3),        unit: '',   pct: Math.abs(data.ndwi) * 100, color: '#3b82f6' },
-        { label: 'Land Cover',       value: data.land_cover_class,       unit: '',   pct: 60 },
-        { label: 'Soil Moisture',    value: data.soil_moisture.toFixed(3), unit: '', pct: data.soil_moisture * 100, color: '#06b6d4' },
-      ];
-      container.innerHTML = metrics.map(m => `
-        <div class="terrain-metric">
-          <div class="tm-label">${m.label}</div>
-          <div class="tm-value">${m.value}</div>
-          <div class="tm-bar" style="width:${Math.min(100, m.pct || 0)}%;background:${m.color || 'var(--accent)'}"></div>
-        </div>
-      `).join('');
-    }
-
-    Charts.renderTerrainRadar(data);
-    Charts.renderSar(data);
+    TerrainPanel.refresh();
   }
 
   /* ── Global refresh ── */
@@ -280,7 +367,8 @@ const App = (() => {
     if (currentPage === 'dashboard') await loadDashboard();
     else {
       // Always refresh topbar weather and alerts count
-      const wx = await API.getWeather();
+      const coords = getActiveCoords();
+      const wx = await API.getWeather(coords.lat, coords.lon);
       if (wx) renderWeatherKPI(wx);
       await AlertsModule.load();
     }
@@ -290,18 +378,118 @@ const App = (() => {
   let livePredTimer = null;
   function startLivePred() {
     livePredTimer = setInterval(async () => {
+      const coords = getActiveCoords();
       if (currentPage === 'dashboard' || currentPage === 'risk') {
-        const d = await API.getLivePrediction();
-        if (d) RiskModule.render(d);
+        const d = await API.getLivePrediction(coords.lat, coords.lon);
+        if (d) {
+          RiskModule.render(d);
+          if (typeof MapModule !== 'undefined' && MapModule.setNearestMine && d.latitude && d.longitude) {
+            MapModule.setNearestMine(d.latitude, d.longitude, d.mine_id);
+          }
+        }
+      }
+      if (currentPage === 'drone' && typeof DroneModule !== 'undefined') {
+        await DroneModule.load();
       }
       // Always refresh worker count
-      const wd = await API.getWorkers(20.5937, 78.9629);
+      const wd = await API.getWorkers(coords.lat, coords.lon);
       if (wd) WorkerModule.render(wd);
     }, REFRESH_INTERVAL);
   }
 
+  function showLogin(show) {
+    const overlay = document.getElementById('login-overlay');
+    const appEl = document.getElementById('app');
+    if (show) {
+      if (overlay) overlay.style.display = 'flex';
+      if (appEl) appEl.style.display = 'none';
+    } else {
+      if (overlay) overlay.style.display = 'none';
+      if (appEl) appEl.style.display = 'flex';
+    }
+  }
+
+  async function handleSendOTP() {
+    const name = document.getElementById('login-name').value.trim();
+    const contact = document.getElementById('login-contact').value.trim();
+    
+    if (!name || !contact) {
+      showToast('Name and Contact fields are required', 'warning');
+      return;
+    }
+    
+    const btn = document.getElementById('btn-send-otp');
+    btn.textContent = 'Sending OTP...';
+    btn.disabled = true;
+    
+    try {
+      const res = await API.post('/auth/request-otp', { name, contact });
+      btn.textContent = 'Send Verification OTP';
+      btn.disabled = false;
+      
+      if (res && res.status === 'otp_sent') {
+        showToast('OTP code sent successfully (Simulated)', 'success');
+        document.getElementById('otp-verify-panel').style.display = 'block';
+        document.getElementById('otp-hint-message').textContent = `Testing OTP Code: ${res.otp}`;
+      } else {
+        showToast('Failed to send OTP code', 'error');
+      }
+    } catch (e) {
+      btn.textContent = 'Send Verification OTP';
+      btn.disabled = false;
+      showToast('Network error sending OTP', 'error');
+    }
+  }
+
+  async function handleVerifyOTP() {
+    const name = document.getElementById('login-name').value.trim();
+    const contact = document.getElementById('login-contact').value.trim();
+    const otp_code = document.getElementById('login-otp').value.trim();
+    
+    if (!otp_code) {
+      showToast('Please enter the OTP code', 'warning');
+      return;
+    }
+    
+    try {
+      const res = await API.post('/auth/verify-otp', { name, contact, otp_code });
+      if (res && res.status === 'authenticated') {
+        showToast('Verified successfully. Welcome to MineShield!', 'success');
+        updateSessionUser(res.user);
+        showLogin(false);
+        await loadDashboard();
+      } else {
+        showToast('Invalid OTP code. Please try again.', 'error');
+      }
+    } catch (e) {
+      showToast('Authentication failed', 'error');
+    }
+  }
+
+  async function handleLogout(e) {
+    if (e) e.preventDefault();
+    await API.post('/auth/logout');
+    showToast('Logged out successfully', 'info');
+    document.getElementById('login-name').value = '';
+    document.getElementById('login-contact').value = '';
+    document.getElementById('login-otp').value = '';
+    document.getElementById('otp-verify-panel').style.display = 'none';
+    showLogin(true);
+  }
+
   /* ── Init ── */
   async function init() {
+    // Load session first
+    const session = await API.get('/auth/session');
+    // If the session user is the default mock user, force login overlay
+    if (session && session.user && session.user.name !== 'Operations User') {
+      updateSessionUser(session.user);
+      showLogin(false);
+    } else {
+      showLogin(true);
+    }
+
+    // Now initialize the app
     initNav();
     // Initial data load
     await loadDashboard();
@@ -317,10 +505,11 @@ const App = (() => {
     startLivePred();
 
     // Worker data for dashboard KPI
-    const wd = await API.getWorkers(20.5937, 78.9629);
+    const coords = getActiveCoords();
+    const wd = await API.getWorkers(coords.lat, coords.lon);
     if (wd) WorkerModule.render(wd);
 
-    showToast('MineShield v2.0 — All systems operational', 'success');
+    showToast('🛡️ MineShield v2.0 — All systems operational', 'success');
     console.log('%c🛡️ MineShield v2.0', 'color:#f97316;font-size:18px;font-weight:900');
     console.log('%cAI Rockfall Prediction System loaded', 'color:#94a3b8');
   }
@@ -328,5 +517,5 @@ const App = (() => {
   // DOM ready
   document.addEventListener('DOMContentLoaded', init);
 
-  return { navigate, showToast, refreshAll };
+  return { navigate, showToast, refreshAll, updateSessionUser, userLocation: null, getActiveCoords, handleSendOTP, handleVerifyOTP, handleLogout };
 })();

@@ -1,0 +1,27 @@
+{
+  "refresh": " تازہ کریں",
+  "run_prediction": "পূরণ পূর্বাভাস চালান",
+  "nav": {
+    "dashboard": "ড্যাশবোর্ড",
+    "map": "লাইভ মানচিত্র",
+    "risk": "ঝুঁকি পর্যবেক্ষণ",
+    "drone": "ড্রোন বুদ্ধিমত্তা",
+    "workers": "কর্মচারী",
+    "weather": "আবহাওয়া",
+    "analytics": "বিশ্লেষণ",
+    "alerts": "সতর্কতা",
+    "explain": "Explainable AI",
+    "terrain": "ভূ-আকৃতি বিশ্লেষণ",
+    "settings": "সেটিংস"
+  },
+  "operations_dashboard": "অপারেশনস ড্যাশবোর্ড",
+  "real_time_monitoring": "রিয়েল-টাইম খনি নিরাপত্তা নজরদারি — রিয়েল-টাইম আপডেট",
+  "acknowledge": "গ্রহণ করুন",
+  "dismiss": "বাতিল",
+  "acknowledged": "গ্রহণ করা হয়েছে",
+  "dismissed": "বাতিল হয়েছে",
+  "uploading": "আপলোড হচ্ছে…",
+  "upload_failed": "আপলোড ব্যর্থ",
+  "ai_analysis_complete": "AI বিশ্লেষণ সম্পন্ন",
+  "error": { "generic": "অপারেশন ব্যর্থ হয়েছে" }
+}

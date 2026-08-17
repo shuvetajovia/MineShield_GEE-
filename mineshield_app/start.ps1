@@ -42,7 +42,7 @@ Start-Sleep -Seconds 5
 # Open frontend in default browser
 $frontendPath = "$PSScriptRoot\frontend\index.html"
 Write-Host "  Opening MineShield frontend..." -ForegroundColor Cyan
-Start-Process $frontendPath
+Start-Process "http://localhost:8000"
 
 Write-Host ""
 Write-Host "  ════════════════════════════════════════════════" -ForegroundColor DarkGray

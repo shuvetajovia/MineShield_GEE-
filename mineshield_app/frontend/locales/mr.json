@@ -1,0 +1,27 @@
+{
+  "refresh": "रिफ्रेश",
+  "run_prediction": "भविष्यवाणी चालवा",
+  "nav": {
+    "dashboard": "डॅशबोर्ड",
+    "map": "लाइव्ह नकाशा",
+    "risk": "जोखीम देखरेख",
+    "drone": "ड्रोन इंटेलिजन्स",
+    "workers": "कामगार",
+    "weather": "हवामान",
+    "analytics": "अ‍ॅनालिटिक्स",
+    "alerts": "सूचना",
+    "explain": "Explainable AI",
+    "terrain": "भूप्रकृति विश्लेषण",
+    "settings": "सेटिंग्ज"
+  },
+  "operations_dashboard": "ऑपरेशन्स डॅशबोर्ड",
+  "real_time_monitoring": "रिअल-टाइम खाण सुरक्षा निरीक्षण — रिअल-टाइम अपडेट",
+  "acknowledge": "मान्य करा",
+  "dismiss": "रद्द करा",
+  "acknowledged": "मान्य केले",
+  "dismissed": "रद्द केले",
+  "uploading": "अपलोड करत आहे…",
+  "upload_failed": "अपलोड अयशस्वी",
+  "ai_analysis_complete": "AI विश्लेषण पूर्ण",
+  "error": { "generic": "ऑपरेशन अयशस्वी" }
+}

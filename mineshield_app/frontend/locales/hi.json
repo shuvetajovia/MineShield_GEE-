@@ -1,0 +1,19 @@
+{
+  "refresh": "Refresh",
+  "run_prediction": "रन प्रेडिक्शन",
+  "nav": {
+    "dashboard": "डैशबोर्ड",
+    "map": "लाइव मानचित्र",
+    "risk": "जोखिम निगरानी",
+    "drone": "ड्रोन बुद्धिमत्ता",
+    "workers": "कर्मी",
+    "weather": "मौसम",
+    "analytics": "एनालिटिक्स",
+    "alerts": "अलर्ट",
+    "explain": "Explainable AI",
+    "terrain": "भू-आकृति विश्लेषण",
+    "settings": "सेटिंग्स"
+  },
+  "operations_dashboard": "ऑपरेशंस डैशबोर्ड",
+  "real_time_monitoring": "रीयल-टाइम माइन सुरक्षा निगरानी — रीयल-टाइम अपडेट्स"
+}
