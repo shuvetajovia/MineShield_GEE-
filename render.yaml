@@ -1,0 +1,12 @@
+# Render Blueprint Specification
+# Deploy the full FastAPI + static frontend app to Render with a single click
+services:
+  - type: web
+    name: mineshield-gee
+    env: docker
+    dockerfilePath: mineshield_app/backend/Dockerfile
+    dockerContext: mineshield_app/backend
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8000
